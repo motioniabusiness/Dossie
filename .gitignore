@@ -43,3 +43,5 @@ next-env.d.ts
 # artes antigas e originais soltos
 /arte-antiga
 *.jfif
+.vercel
+.env*
