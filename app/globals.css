@@ -45,6 +45,19 @@
   --animate-panorama: panorama 26s ease-in-out infinite alternate;
   /* Troca de fase: a tela nova entra por cima, sem salto. */
   --animate-troca-fase: troca-fase 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Senha errada: a ficha balança de um lado para o outro. */
+  --animate-tremer: tremer 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes tremer {
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
 }
 
 @theme inline {

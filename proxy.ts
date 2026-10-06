@@ -1,56 +1,59 @@
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  COOKIE_ACESSO,
+  cookieValido,
+  senhaConfigurada,
+} from "@/lib/servidor/acesso";
 
 /**
  * Porteiro do jogo publicado. Cada caso gerado gasta créditos da Anthropic,
- * então ninguém passa daqui sem a senha de SENHA_ACESSO.
+ * então nada passa daqui sem a sessão aberta na tela /entrar.
  *
- * Uso a autenticação básica do próprio navegador: ele pede a senha uma vez,
- * guarda enquanto a aba estiver aberta e a reenvia sozinho em toda chamada,
- * inclusive nos `fetch` para /api. O campo de usuário é ignorado.
+ * Página sem sessão vai para /entrar; chamada de API sem sessão recebe 401.
  *
- * Sem a variável definida: em desenvolvimento passa direto; publicado, fecha a
- * porta, para um esquecimento na configuração não abrir as rotas pagas.
+ * Sem SENHA_ACESSO: em desenvolvimento passa direto; publicado, fecha a porta,
+ * para um esquecimento na configuração não abrir as rotas pagas.
  */
-export function proxy(request: NextRequest) {
-  const senha = process.env.SENHA_ACESSO;
 
-  if (!senha) {
+/** O que precisa abrir sem sessão: a própria tela de entrada e quem a atende. */
+const LIVRES = ["/entrar", "/api/entrar"];
+
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (!senhaConfigurada()) {
     if (process.env.NODE_ENV !== "production") return NextResponse.next();
     return new NextResponse("Jogo sem senha configurada (SENHA_ACESSO).", {
       status: 503,
     });
   }
 
-  const cabecalho = request.headers.get("authorization") ?? "";
-  if (cabecalho.startsWith("Basic ")) {
-    try {
-      // "usuario:senha". A senha pode conter ":", então corto só no primeiro.
-      const credenciais = atob(cabecalho.slice(6));
-      const recebida = credenciais.slice(credenciais.indexOf(":") + 1);
-      if (iguais(recebida, senha)) return NextResponse.next();
-    } catch {
-      // Cabeçalho malformado: cai no pedido de senha abaixo.
+  const liberado = cookieValido(request.cookies.get(COOKIE_ACESSO)?.value);
+
+  if (LIVRES.includes(pathname)) {
+    // Quem já entrou e abre /entrar de novo vai direto para o jogo.
+    if (liberado && pathname === "/entrar") {
+      return NextResponse.redirect(new URL("/", request.url));
     }
+    return NextResponse.next();
   }
 
-  return new NextResponse("Senha necessária.", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="Dossie", charset="UTF-8"',
-    },
-  });
-}
+  if (liberado) return NextResponse.next();
 
-/** Comparação em tempo constante, para não vazar a senha pelo relógio. */
-function iguais(a: string, b: string) {
-  let diferenca = a.length ^ b.length;
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    diferenca |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json(
+      { erro: "Sessão expirada. Recarregue a página e entre de novo." },
+      { status: 401 },
+    );
   }
-  return diferenca === 0;
+
+  return NextResponse.redirect(new URL("/entrar", request.url));
 }
 
 export const config = {
-  // Tudo, menos os arquivos internos de build, que não têm nada de sensível.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Fica de fora o que não tem nada de sensível e que a tela de entrada usa:
+  // arquivos de build, imagens, fontes e a trilha.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|webp|svg|mp3|woff2?)$).*)",
+  ],
 };
