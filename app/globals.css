@@ -128,6 +128,26 @@
 }
 
 @layer base {
+  /*
+   * No iPhone, um campo com fonte menor que 16px faz o Safari dar zoom na
+   * página ao tocar nele, e a tela fica torta até a pessoa desfazer o zoom.
+   */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Toque sem o clarão azul do Android e sem atraso de duplo toque. */
+  button,
+  a,
+  summary {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
   body {
     background-color: var(--color-noite-950);
     color: var(--color-papel-100);

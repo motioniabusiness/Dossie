@@ -39,6 +39,10 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
   const { estado, dispatch } = useJogo();
   const [aberto, setAberto] = useState<Aberto>(null);
   const [confirmandoVeredito, setConfirmandoVeredito] = useState(false);
+  /** No celular o polegar esbarra fácil: pular também pede confirmação. */
+  const [confirmandoPulo, setConfirmandoPulo] = useState(false);
+  /** Aba visível no celular, onde o quadro vira lista. */
+  const [aba, setAba] = useState<"suspeitos" | "evidencias">("suspeitos");
 
   // Estável: evita recriar o intervalo do cronômetro a cada render.
   const irParaVeredito = useCallback(() => {
@@ -89,15 +93,21 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
      */
     <div className="flex w-full flex-col md:h-[100dvh] md:overflow-hidden">
       {/* ---------- Cabeçalho: caso + cronômetro ---------- */}
-      <header className="sticky top-0 z-40 shrink-0 border-b border-noite-700 bg-noite-950/85 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-5 py-3 sm:px-8">
+      <header
+        className="sticky top-0 z-40 shrink-0 border-b border-noite-700 bg-noite-950/85 backdrop-blur-md"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-8">
           <div className="min-w-0">
             <p className="etiqueta truncate">
               {nomeCategoria(caso.categoria)}
               {estado.config
                 ? ` · ${nomeDificuldade(estado.config.dificuldade)}`
-                : ""}{" "}
-              · {estado.jogador1} vs {estado.jogador2}
+                : ""}
+              <span className="hidden sm:inline">
+                {" "}
+                · {estado.jogador1} vs {estado.jogador2}
+              </span>
             </p>
             <h1 className="truncate font-mono text-base text-papel-50 sm:text-lg">
               {caso.titulo}
@@ -105,10 +115,42 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
           </div>
           <Cronometro fimEm={fimEm} onTempoEsgotado={irParaVeredito} />
         </div>
+
+        {/* Abas do celular: presas no cabeçalho, sempre à mão do polegar */}
+        <div
+          role="tablist"
+          aria-label="Seções do caso"
+          className="grid grid-cols-2 border-t border-noite-800 md:hidden"
+        >
+          {(
+            [
+              ["suspeitos", `Suspeitos · ${caso.suspeitos.length}`],
+              [
+                "evidencias",
+                `Evidências · ${estado.pistasVistas.length}/${caso.pistas.length}`,
+              ],
+            ] as const
+          ).map(([id, rotulo]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={aba === id}
+              onClick={() => setAba(id)}
+              className={`border-b-2 py-2.5 font-mono text-[0.6875rem] tracking-[0.14em] uppercase transition-colors ${
+                aba === id
+                  ? "border-ambar-500 text-ambar-300"
+                  : "border-transparent text-papel-500"
+              }`}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="animate-entrada mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-5 py-4 sm:px-8 md:min-h-0">
-        <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-3">
+      <div className="animate-entrada mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 pt-4 pb-32 sm:px-8 md:min-h-0 md:pb-4">
+        <div className="hidden shrink-0 flex-wrap items-baseline justify-between gap-3 md:flex">
           <p className="etiqueta">
             Quadro de investigação · clique em qualquer item para abrir
           </p>
@@ -132,24 +174,22 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
         </div>
 
         {/* ---------- Lista equivalente no celular ---------- */}
-        <div className="flex flex-col gap-8 md:hidden">
+        <div className="flex flex-col gap-5 md:hidden">
           <button
             type="button"
             onClick={() => setAberto({ tipo: "briefing" })}
-            className="painel flex flex-col items-start gap-2 p-5 text-left"
+            className="painel flex flex-col items-start gap-1.5 px-4 py-3.5 text-left active:border-ambar-500/60"
           >
-            <span className="etiqueta">O caso · ler briefing</span>
-            <span className="font-mono text-base text-papel-50">
-              {caso.titulo}
-            </span>
+            <span className="etiqueta">O caso · toque para ler o briefing</span>
             <span className="line-clamp-2 text-xs leading-relaxed text-papel-300">
               {caso.contexto}
             </span>
           </button>
 
-          <section className="flex flex-col gap-4">
-            <h2 className="etiqueta">Suspeitos ({caso.suspeitos.length})</h2>
-            <div className="grid grid-cols-2 gap-4">
+          {aba === "suspeitos" && (
+          <section className="animate-entrada flex flex-col gap-3">
+            <h2 className="sr-only">Suspeitos</h2>
+            <div className="grid grid-cols-2 gap-3">
               {caso.suspeitos.map((s, i) => (
                 <button
                   key={s.nome}
@@ -165,17 +205,19 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
                   <span className="truncate font-mono text-[0.6875rem] tracking-[0.08em] text-noite-900 uppercase">
                     {s.nome}
                   </span>
-                  <span className="text-[0.625rem] tracking-[0.14em] text-noite-900/55 uppercase">
-                    Abrir ficha
+                  <span className="truncate text-[0.625rem] tracking-[0.1em] text-noite-900/55 uppercase">
+                    {s.ocupacao ?? "Abrir ficha"}
                   </span>
                 </button>
               ))}
             </div>
           </section>
+          )}
 
-          <section className="flex flex-col gap-4">
-            <h2 className="etiqueta">Evidências ({caso.pistas.length})</h2>
-            <div className="flex flex-col gap-3">
+          {aba === "evidencias" && (
+          <section className="animate-entrada flex flex-col gap-3">
+            <h2 className="sr-only">Evidências</h2>
+            <div className="flex flex-col gap-2.5">
               {caso.pistas.map((p, i) => {
                 const vista = estado.pistasVistas.includes(p.id);
                 return (
@@ -183,7 +225,7 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
                     key={p.id}
                     type="button"
                     onClick={() => abrirPista(p.id)}
-                    className={`painel flex items-center gap-3 p-4 text-left ${
+                    className={`painel flex items-center gap-3 px-4 py-3.5 text-left active:border-ambar-500/60 ${
                       vista ? "border-noite-600 bg-noite-800/40" : ""
                     }`}
                   >
@@ -216,10 +258,11 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
               })}
             </div>
           </section>
+          )}
         </div>
 
-        {/* ---------- Ações ---------- */}
-        <footer className="flex shrink-0 flex-col gap-4 border-t border-noite-700 pt-4">
+        {/* ---------- Ações (computador) ---------- */}
+        <footer className="hidden shrink-0 flex-col gap-4 border-t border-noite-700 pt-4 md:flex">
           {confirmandoVeredito ? (
             <div className="painel animate-entrada flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-papel-100">
@@ -252,6 +295,64 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
           )}
         </footer>
       </div>
+
+      {/* ---------- Ações (celular): barra presa embaixo ---------- */}
+      <nav
+        aria-label="Ações da investigação"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-noite-700 bg-noite-950/95 px-4 pt-3 backdrop-blur-md md:hidden"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
+        {confirmandoVeredito ? (
+          <div className="animate-entrada flex flex-col gap-3">
+            <p className="text-xs leading-relaxed text-papel-100">
+              Encerrar agora? Os arquivos não podem ser reabertos depois do
+              veredito.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Botao
+                variante="fantasma"
+                onClick={() => setConfirmandoVeredito(false)}
+              >
+                Voltar
+              </Botao>
+              <Botao onClick={irParaVeredito}>Encerrar</Botao>
+            </div>
+          </div>
+        ) : confirmandoPulo ? (
+          <div className="animate-entrada flex flex-col gap-3">
+            <p className="text-xs leading-relaxed text-papel-100">
+              Descartar este caso e gerar outro? O cronômetro continua correndo.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Botao
+                variante="fantasma"
+                onClick={() => setConfirmandoPulo(false)}
+              >
+                Voltar
+              </Botao>
+              <Botao onClick={() => dispatch({ tipo: "PULAR_CASO" })}>
+                Pular caso
+              </Botao>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Botao
+              variante="secundario"
+              onClick={() => setConfirmandoPulo(true)}
+              className="shrink-0 px-4"
+            >
+              Pular
+            </Botao>
+            <Botao
+              onClick={() => setConfirmandoVeredito(true)}
+              className="flex-1"
+            >
+              Ir para o veredito
+            </Botao>
+          </div>
+        )}
+      </nav>
 
       {/* ---------- Arquivos abertos ---------- */}
       {indicePistaAberta >= 0 && (

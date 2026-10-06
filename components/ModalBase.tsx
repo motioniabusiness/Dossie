@@ -47,8 +47,13 @@ export default function ModalBase({
   const papel = tom === "papel";
 
   return (
+    /**
+     * No celular o arquivo sobe de baixo como uma folha e rola por dentro, com
+     * o cabeçalho parado: o botão de fechar nunca some no meio de uma ficha
+     * comprida. No computador continua centralizado.
+     */
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-noite-950/85 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-noite-950/85 backdrop-blur-sm sm:items-center sm:p-6"
       onClick={onFechar}
     >
       <div
@@ -56,14 +61,21 @@ export default function ModalBase({
         aria-modal="true"
         aria-labelledby="titulo-modal"
         onClick={(e) => e.stopPropagation()}
-        className={`animate-entrada my-auto w-full ${larguraMax} rounded-t-lg sm:rounded-lg ${
+        className={`animate-entrada flex max-h-[92dvh] w-full flex-col overflow-hidden ${larguraMax} rounded-t-xl sm:max-h-[calc(100dvh-3rem)] sm:rounded-lg ${
           papel
             ? "papelzinho border border-madeira-700/40"
             : "painel rounded-b-none sm:rounded-b-lg"
         }`}
       >
+        {/* Alça da folha, só no celular */}
+        <span
+          aria-hidden="true"
+          className={`mx-auto mt-2 h-1 w-10 shrink-0 rounded-full sm:hidden ${
+            papel ? "bg-noite-900/25" : "bg-noite-600"
+          }`}
+        />
         <header
-          className={`flex items-start justify-between gap-4 border-b px-5 py-4 sm:px-6 ${
+          className={`flex shrink-0 items-start justify-between gap-4 border-b px-5 py-3 sm:px-6 sm:py-4 ${
             papel ? "border-noite-900/20" : "border-noite-700"
           }`}
         >
@@ -89,7 +101,7 @@ export default function ModalBase({
             ref={botaoFechar}
             onClick={onFechar}
             aria-label="Fechar arquivo"
-            className={`shrink-0 rounded-md border px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ambar-500/60 ${
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ambar-500/60 ${
               papel
                 ? "border-noite-900/25 text-noite-700 hover:border-sangue-500 hover:text-sangue-600"
                 : "border-noite-600 text-papel-300 hover:border-ambar-500/60 hover:text-ambar-300"
@@ -99,7 +111,9 @@ export default function ModalBase({
           </button>
         </header>
 
-        <div className="px-5 py-5 sm:px-6 sm:py-6">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-6">
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -102,8 +102,65 @@ export interface OpcoesDeFala {
 /** Como a fala saiu, para a interface saber se ainda está na voz robótica. */
 export type OrigemDaFala = "servidor" | "navegador" | "nenhum";
 
-/** Áudio vindo do servidor, guardado para poder ser interrompido. */
-let audioDoServidor: HTMLAudioElement | null = null;
+/**
+ * Um único elemento de áudio para todas as falas vindas do servidor.
+ *
+ * No iPhone (e no Chrome do Android com economia de dados), só toca som quem
+ * foi liberado por um toque do usuário. A resposta do suspeito chega segundos
+ * depois do toque em "Perguntar", fora desse gesto, e seria bloqueada. Por isso
+ * o elemento é criado e destravado no próprio toque, com um som mudo, e a fala
+ * real reaproveita o mesmo elemento quando chega.
+ */
+let elementoDeVoz: HTMLAudioElement | null = null;
+/** Endereço da fala atual, para liberar a memória quando ela acaba. */
+let urlAtual: string | null = null;
+/** Silêncio de dois amostras em WAV, gerado uma vez. */
+let silencio: string | null = null;
+
+function wavSilencioso(): string {
+  const buffer = new ArrayBuffer(46);
+  const v = new DataView(buffer);
+  const texto = (pos: number, s: string) =>
+    [...s].forEach((c, i) => v.setUint8(pos + i, c.charCodeAt(0)));
+  texto(0, "RIFF");
+  v.setUint32(4, 38, true);
+  texto(8, "WAVE");
+  texto(12, "fmt ");
+  v.setUint32(16, 16, true); // tamanho do bloco fmt
+  v.setUint16(20, 1, true); // PCM
+  v.setUint16(22, 1, true); // mono
+  v.setUint32(24, 8000, true); // amostras por segundo
+  v.setUint32(28, 8000, true); // bytes por segundo
+  v.setUint16(32, 1, true); // alinhamento
+  v.setUint16(34, 8, true); // bits por amostra
+  texto(36, "data");
+  v.setUint32(40, 2, true);
+  v.setUint8(44, 128);
+  v.setUint8(45, 128);
+  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+}
+
+/**
+ * Chame dentro do toque do usuário (onClick), antes de qualquer espera. Deixa
+ * o áudio e a voz do navegador liberados para a resposta que vem depois.
+ */
+export function prepararVoz() {
+  if (typeof window === "undefined") return;
+
+  if (!elementoDeVoz) elementoDeVoz = new Audio();
+  silencio ??= wavSilencioso();
+  if (elementoDeVoz.paused) {
+    elementoDeVoz.src = silencio;
+    void elementoDeVoz.play().catch(() => {});
+  }
+
+  // A síntese do Safari também precisa de uma primeira fala dentro do gesto.
+  if (suportaVoz() && !window.speechSynthesis.speaking) {
+    const vazia = new SpeechSynthesisUtterance("");
+    vazia.volume = 0;
+    window.speechSynthesis.speak(vazia);
+  }
+}
 /**
  * Uma vez que a rota responde 503 (sem chave da Azure configurada), não vale
  * insistir a cada resposta: passa a usar direto a voz do navegador.
@@ -120,6 +177,8 @@ export async function falar(
   opcoes: OpcoesDeFala,
 ): Promise<OrigemDaFala> {
   calarVoz();
+  // Quando a fala vem de um toque direto (ouvir de novo), já destrava aqui.
+  prepararVoz();
 
   if (!servidorIndisponivel) {
     const foi = await falarPeloServidor(texto, opcoes);
@@ -151,12 +210,16 @@ async function falarPeloServidor(
     if (!resposta.ok) return false;
 
     const url = URL.createObjectURL(await resposta.blob());
-    const el = new Audio(url);
-    audioDoServidor = el;
+    elementoDeVoz ??= new Audio();
+    const el = elementoDeVoz;
+    liberarUrl();
+    urlAtual = url;
+    el.src = url;
 
     const encerrar = () => {
-      URL.revokeObjectURL(url);
-      if (audioDoServidor === el) audioDoServidor = null;
+      el.onended = null;
+      el.onerror = null;
+      liberarUrl();
       opcoes.onFim?.();
     };
     el.onended = encerrar;
@@ -167,6 +230,11 @@ async function falarPeloServidor(
   } catch {
     return false;
   }
+}
+
+function liberarUrl() {
+  if (urlAtual) URL.revokeObjectURL(urlAtual);
+  urlAtual = null;
 }
 
 function falarPeloNavegador(texto: string, opcoes: OpcoesDeFala): boolean {
@@ -197,12 +265,13 @@ function falarPeloNavegador(texto: string, opcoes: OpcoesDeFala): boolean {
 
 export function calarVoz() {
   if (suportaVoz()) window.speechSynthesis.cancel();
-  if (audioDoServidor) {
-    audioDoServidor.pause();
-    audioDoServidor.onended = null;
-    audioDoServidor.onerror = null;
-    audioDoServidor = null;
+  // O elemento fica guardado: ele já está destravado para a próxima fala.
+  if (elementoDeVoz) {
+    elementoDeVoz.pause();
+    elementoDeVoz.onended = null;
+    elementoDeVoz.onerror = null;
   }
+  liberarUrl();
 }
 
 /**

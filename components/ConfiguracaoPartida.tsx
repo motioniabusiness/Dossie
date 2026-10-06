@@ -70,7 +70,7 @@ export default function ConfiguracaoPartida() {
   }
 
   return (
-    <div className="cascata mx-auto flex w-full max-w-[1500px] flex-col justify-center gap-6 px-5 py-6 sm:px-8 sm:gap-8 md:min-h-[100dvh]">
+    <div className="cascata mx-auto flex w-full max-w-[1500px] flex-col justify-center gap-6 px-4 pt-6 pb-0 sm:gap-8 sm:px-8 sm:pb-6 md:min-h-[100dvh]">
       <header className="flex flex-col gap-3">
         <span className="etiqueta">Etapa 2 · Parâmetros da investigação</span>
         <h2 className="font-mono text-2xl tracking-[0.08em] text-papel-50 sm:text-3xl">
@@ -86,7 +86,9 @@ export default function ConfiguracaoPartida() {
       {/* ---------- Categoria ---------- */}
       <section className="flex flex-col gap-3">
         <h3 className="etiqueta">Categoria do caso</h3>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* No celular vira grade 2x2 só com ícone e nome: as descrições
+            empurravam o botão de iniciar para três telas abaixo. */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {CATEGORIAS.map((c) => {
             const ativo = categoria === c.id;
             return (
@@ -96,7 +98,7 @@ export default function ConfiguracaoPartida() {
                 onClick={() => setCategoria(c.id)}
                 aria-pressed={ativo}
                 aria-label={c.nome}
-                className={`painel group flex items-start gap-4 p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgba(0,0,0,1)] xl:flex-col ${
+                className={`painel group flex flex-col items-start gap-2 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgba(0,0,0,1)] sm:flex-row sm:gap-4 sm:p-5 xl:flex-col ${
                   ativo
                     ? "border-ambar-500/70 bg-ambar-500/[0.07] shadow-[0_0_24px_-8px_rgba(227,171,82,0.35)]"
                     : "hover:border-noite-500"
@@ -119,7 +121,7 @@ export default function ConfiguracaoPartida() {
                   >
                     {c.nome}
                   </span>
-                  <span className="text-xs leading-relaxed text-papel-500">
+                  <span className="hidden text-xs leading-relaxed text-papel-500 sm:block">
                     {c.descricao}
                   </span>
                 </span>
@@ -132,7 +134,7 @@ export default function ConfiguracaoPartida() {
       {/* ---------- Modo ---------- */}
       <section className="flex flex-col gap-3">
         <h3 className="etiqueta">Como vão jogar</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {MODOS.map((m) => {
             const ativo = modo === m.id;
             return (
@@ -142,7 +144,7 @@ export default function ConfiguracaoPartida() {
                 aria-pressed={ativo}
                 aria-label={m.nome}
                 onClick={() => setModo(m.id)}
-                className={`painel flex flex-col gap-2 p-5 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                className={`painel flex flex-col gap-2 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 sm:p-5 ${
                   ativo
                     ? "border-ambar-500/70 bg-ambar-500/[0.07] shadow-[0_0_24px_-8px_rgba(227,171,82,0.35)]"
                     : "hover:border-noite-500"
@@ -155,7 +157,7 @@ export default function ConfiguracaoPartida() {
                 >
                   {m.nome}
                 </span>
-                <span className="text-xs leading-relaxed text-papel-500">
+                <span className="text-[0.6875rem] leading-relaxed text-papel-500 sm:text-xs">
                   {m.descricao}
                 </span>
               </button>
@@ -167,7 +169,7 @@ export default function ConfiguracaoPartida() {
       {/* ---------- Dificuldade ---------- */}
       <section className="flex flex-col gap-3">
         <h3 className="etiqueta">Dificuldade do caso</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {DIFICULDADES.map((d, i) => {
             const ativo = dificuldade === d.id;
             return (
@@ -177,18 +179,18 @@ export default function ConfiguracaoPartida() {
                 aria-pressed={ativo}
                 aria-label={d.nome}
                 onClick={() => setDificuldade(d.id)}
-                className={`painel flex flex-col gap-2 p-5 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                className={`painel flex flex-col gap-2 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 sm:p-5 ${
                   ativo
                     ? "border-ambar-500/70 bg-ambar-500/[0.07] shadow-[0_0_24px_-8px_rgba(227,171,82,0.35)]"
                     : "hover:border-noite-500"
                 }`}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 sm:gap-2">
                   {/* Três marcas: quantas acesas indica o nível. */}
                   {[0, 1, 2].map((n) => (
                     <span
                       key={n}
-                      className={`h-1.5 w-5 rounded-full ${
+                      className={`h-1.5 w-4 rounded-full sm:w-5 ${
                         n <= i
                           ? ativo
                             ? "bg-ambar-400"
@@ -205,7 +207,7 @@ export default function ConfiguracaoPartida() {
                 >
                   {d.nome}
                 </span>
-                <span className="text-xs leading-relaxed text-papel-500">
+                <span className="hidden text-xs leading-relaxed text-papel-500 sm:block">
                   {d.descricao}
                 </span>
               </button>
@@ -217,7 +219,7 @@ export default function ConfiguracaoPartida() {
       {/* ---------- Tempo ---------- */}
       <section className="flex flex-col gap-3">
         <h3 className="etiqueta">Tempo de investigação</h3>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-3 gap-3 sm:flex sm:flex-wrap">
           {TEMPOS_PADRAO.map((t) => {
             const ativo = !modoPersonalizado && minutos === t.minutos;
             return (
@@ -230,7 +232,7 @@ export default function ConfiguracaoPartida() {
                   setModoPersonalizado(false);
                   setMinutos(t.minutos);
                 }}
-                className={`painel flex min-w-36 flex-col gap-1 px-5 py-3 text-left transition-all duration-200 ${
+                className={`painel flex flex-col gap-1 px-3 py-3 text-left transition-all duration-200 sm:min-w-36 sm:px-5 ${
                   ativo
                     ? "border-ambar-500/70 bg-ambar-500/[0.07]"
                     : "hover:border-noite-500"
@@ -253,7 +255,7 @@ export default function ConfiguracaoPartida() {
             aria-pressed={modoPersonalizado}
             aria-label="Tempo personalizado"
             onClick={() => setModoPersonalizado(true)}
-            className={`painel flex min-w-36 flex-col gap-1 px-5 py-3 text-left transition-all duration-200 ${
+            className={`painel flex flex-col gap-1 px-3 py-3 text-left transition-all duration-200 sm:min-w-36 sm:px-5 ${
               modoPersonalizado
                 ? "border-ambar-500/70 bg-ambar-500/[0.07]"
                 : "hover:border-noite-500"
@@ -264,7 +266,8 @@ export default function ConfiguracaoPartida() {
                 modoPersonalizado ? "text-ambar-300" : "text-papel-100"
               }`}
             >
-              Personalizado
+              <span className="sm:hidden">Outro</span>
+              <span className="hidden sm:inline">Personalizado</span>
             </span>
             <span className="text-xs text-papel-500">Você define</span>
           </button>
@@ -292,17 +295,24 @@ export default function ConfiguracaoPartida() {
         )}
       </section>
 
-      <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-noite-700 pt-5">
+      {/* No celular o rodapé gruda embaixo: o botão de iniciar fica sempre
+          visível, sem precisar rolar até o fim da página. */}
+      <footer
+        className="sticky bottom-0 z-30 -mx-4 flex items-center justify-between gap-3 border-t border-noite-700 bg-noite-950/95 px-4 pt-3 backdrop-blur-md sm:static sm:mx-0 sm:flex-wrap sm:gap-4 sm:bg-transparent sm:px-0 sm:pt-5 sm:pb-0 sm:backdrop-blur-none"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <Botao
           variante="fantasma"
           onClick={() => dispatch({ tipo: "IR_PARA", fase: "menu" })}
+          className="shrink-0 px-2 sm:px-5"
         >
-          ← Trocar investigadores
+          ← <span className="hidden sm:inline">Trocar investigadores</span>
+          <span className="sm:hidden">Voltar</span>
         </Botao>
         <Botao
           onClick={iniciar}
           disabled={!pronto}
-          className={pronto ? "animate-brilho" : ""}
+          className={`flex-1 sm:flex-none ${pronto ? "animate-brilho" : ""}`}
         >
           Iniciar Investigação
         </Botao>

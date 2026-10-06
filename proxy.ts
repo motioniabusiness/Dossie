@@ -24,7 +24,9 @@ export function proxy(request: NextRequest) {
   const cabecalho = request.headers.get("authorization") ?? "";
   if (cabecalho.startsWith("Basic ")) {
     try {
-      const [, recebida = ""] = atob(cabecalho.slice(6)).split(/:(.*)/s);
+      // "usuario:senha". A senha pode conter ":", então corto só no primeiro.
+      const credenciais = atob(cabecalho.slice(6));
+      const recebida = credenciais.slice(credenciais.indexOf(":") + 1);
       if (iguais(recebida, senha)) return NextResponse.next();
     } catch {
       // Cabeçalho malformado: cai no pedido de senha abaixo.

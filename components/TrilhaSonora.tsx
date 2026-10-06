@@ -140,6 +140,7 @@ export default function TrilhaSonora() {
       if (!el.src.endsWith(caminho)) el.src = caminho;
       const { volume: v, mudo: m } = preferencias.current;
       el.volume = m ? 0 : v;
+      el.muted = m;
       el.play().then(
         () => setTemTrilha(true),
         () => {
@@ -175,6 +176,9 @@ export default function TrilhaSonora() {
     preferencias.current = { volume, mudo };
     if (audio.current) {
       audio.current.volume = mudo ? 0 : abafado ? volume * 0.2 : volume;
+      // No iPhone o volume de um <audio> é só leitura e fica sempre em 100%:
+      // sem `muted`, o botão de silenciar não faria nada por lá.
+      audio.current.muted = mudo;
     }
     try {
       localStorage.setItem(CHAVE_VOLUME, String(volume));
@@ -190,7 +194,9 @@ export default function TrilhaSonora() {
       const el = audio.current;
       if (!el) return;
       if (document.hidden) el.pause();
-      else if (!mudo) void el.play().catch(() => {});
+      // Só volta se a fase atual tem música: na sala de investigação, voltar
+      // de outro app no celular não pode religar a trilha.
+      else if (!mudo && faixaDesejada.current) void el.play().catch(() => {});
     }
     document.addEventListener("visibilitychange", aoTrocarDeAba);
     return () => document.removeEventListener("visibilitychange", aoTrocarDeAba);
@@ -203,11 +209,14 @@ export default function TrilhaSonora() {
     };
   }, []);
 
-  if (!temTrilha) return null;
+  // Nas fases silenciosas o controle sai da frente: no celular ele cobria a
+  // barra de ações da sala de investigação.
+  if (!temTrilha || !TRILHAS[estado.fase]) return null;
 
   return (
     <div
-      className="fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-full border border-noite-600 bg-noite-900/90 px-3 py-2 backdrop-blur-md transition-all"
+      style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      className="fixed right-4 z-50 flex items-center gap-3 rounded-full border border-noite-600 bg-noite-900/90 px-3 py-2 backdrop-blur-md transition-all"
       onMouseEnter={() => setAberto(true)}
       onMouseLeave={() => setAberto(false)}
     >

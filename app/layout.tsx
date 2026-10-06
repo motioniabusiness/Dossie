@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,18 @@ export const metadata: Metadata = {
   title: "Dossiê: Duelo de Investigadores",
   description:
     "Dois analistas rivais, um caso inédito, uma única verdade. Jogo de investigação para dois jogadores.",
+  // Adicionado à tela inicial do iPhone, abre sem a barra do Safari.
+  appleWebApp: { capable: true, title: "Dossiê", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Ocupa a tela toda nos celulares com entalhe; as margens seguras ficam no CSS.
+  viewportFit: "cover",
+  // Barra do navegador no celular na mesma cor do fundo do jogo.
+  themeColor: "#070a10",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({

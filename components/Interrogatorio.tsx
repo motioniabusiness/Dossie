@@ -12,6 +12,7 @@ import {
   calarVoz,
   carregarVozes,
   falar,
+  prepararVoz,
   suportaVoz,
   temVozNatural,
 } from "@/lib/voz";
@@ -80,6 +81,8 @@ export default function Interrogatorio({
 
   async function perguntar() {
     if (!podeEnviar || !estado.solucaoSelada) return;
+    // Ainda dentro do toque: libera o som para a resposta que chega depois.
+    prepararVoz();
     setCarregando(true);
     setErro(null);
 
