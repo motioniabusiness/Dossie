@@ -1,0 +1,395 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Tema "dossiê confidencial" — tokens de cor, fonte e animação.
+   No Tailwind v4 as chaves em @theme geram utilitários (bg-noite-900, etc.).
+   ========================================================================== */
+@theme {
+  /* Fundos: grafite azulado / marinho profundo */
+  --color-noite-950: #070a0e;
+  --color-noite-900: #0b0f16;
+  --color-noite-850: #10151e;
+  --color-noite-800: #151c27;
+  --color-noite-700: #1d2532;
+  --color-noite-600: #29323f;
+  --color-noite-500: #3a4453;
+
+  /* Texto: papel envelhecido */
+  --color-papel-50: #f5f2ea;
+  --color-papel-100: #e6e1d5;
+  --color-papel-300: #b5aea0;
+  --color-papel-500: #8a8375;
+
+  /* Acento principal: âmbar de lâmpada de mesa */
+  --color-ambar-300: #f2ca85;
+  --color-ambar-400: #e3ab52;
+  --color-ambar-500: #cf8f2c;
+  --color-ambar-600: #a3701f;
+
+  /* Acento secundário: vermelho de carimbo e de linha de barbante */
+  --color-sangue-400: #d4574a;
+  --color-sangue-500: #b83a2c;
+  --color-sangue-600: #8c2a20;
+
+  /* Moldura de madeira do quadro de investigação */
+  --color-madeira-700: #33261d;
+  --color-madeira-800: #241a14;
+
+  --animate-entrada: entrada 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-varredura: varredura 1.6s ease-in-out infinite;
+  /* Folha caindo no quadro: entra girada e assenta reta. */
+  --animate-assentar: assentar 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Brilho âmbar respirando, para o que exige ação. */
+  --animate-brilho: brilho 2.8s ease-in-out infinite;
+  /* Movimento lento de câmera na arte de fundo. */
+  --animate-panorama: panorama 26s ease-in-out infinite alternate;
+  /* Troca de fase: a tela nova entra por cima, sem salto. */
+  --animate-troca-fase: troca-fase 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/**
+ * Sem translate de propósito: deslocar para baixo aumenta a altura do
+ * documento enquanto a animação roda e faz a barra de rolagem piscar. Escala
+ * para dentro e desfoque dão a mesma sensação sem mexer no leiaute.
+ */
+@keyframes troca-fase {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes assentar {
+  from {
+    opacity: 0;
+    transform: translateY(-26px) rotate(-4deg) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes brilho {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(227, 171, 82, 0);
+  }
+  50% {
+    box-shadow: 0 0 22px 2px rgba(227, 171, 82, 0.28);
+  }
+}
+
+/**
+ * Amplitude curta de propósito, por dois motivos: não desgrudar as etiquetas
+ * presas aos personagens, e não ampliar a arte além do tamanho real do arquivo,
+ * o que embaçaria o traço. O mínimo tem de ser maior que o dobro do translate,
+ * senão a borda da imagem aparece.
+ */
+@keyframes panorama {
+  from {
+    transform: scale(1.008) translate3d(-0.25%, -0.18%, 0);
+  }
+  to {
+    transform: scale(1.03) translate3d(0.25%, 0.18%, 0);
+  }
+}
+
+/* Barra de "varredura" da tela de carregamento */
+@keyframes varredura {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-noite-950);
+    color: var(--color-papel-100);
+    /* Luz de mesa vinda de cima + penumbra marinha no canto inferior */
+    background-image:
+      radial-gradient(
+        120% 80% at 50% -15%,
+        rgba(207, 143, 44, 0.12),
+        transparent 60%
+      ),
+      radial-gradient(
+        90% 70% at 100% 110%,
+        rgba(20, 40, 70, 0.55),
+        transparent 70%
+      );
+    background-attachment: fixed;
+  }
+
+  /* Grade discreta de "mesa de trabalho", esmaecida nas bordas */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: radial-gradient(
+      75% 65% at 50% 30%,
+      #000,
+      transparent
+    );
+    mask-image: radial-gradient(75% 65% at 50% 30%, #000, transparent);
+  }
+}
+
+@layer components {
+  /**
+   * Entrada em cascata: cada filho direto entra um pouco depois do anterior.
+   * Evita ter que espalhar delay inline por toda a árvore.
+   */
+  .cascata > * {
+    animation: entrada 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .cascata > *:nth-child(1) {
+    animation-delay: 0.04s;
+  }
+  .cascata > *:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  .cascata > *:nth-child(3) {
+    animation-delay: 0.16s;
+  }
+  .cascata > *:nth-child(4) {
+    animation-delay: 0.22s;
+  }
+  .cascata > *:nth-child(5) {
+    animation-delay: 0.28s;
+  }
+  .cascata > *:nth-child(6) {
+    animation-delay: 0.34s;
+  }
+  .cascata > *:nth-child(7) {
+    animation-delay: 0.4s;
+  }
+  .cascata > *:nth-child(8) {
+    animation-delay: 0.46s;
+  }
+  .cascata > *:nth-child(9) {
+    animation-delay: 0.52s;
+  }
+
+  /* Etiqueta de identificação presa na arte do menu */
+  .cracha {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #2b1d05;
+    background-image: linear-gradient(
+      160deg,
+      var(--color-ambar-300),
+      var(--color-ambar-500)
+    );
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.2rem;
+    box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.9);
+    white-space: nowrap;
+  }
+
+  /* Quem tem reduced-motion desligado não precisa de laço infinito */
+  @media (prefers-reduced-motion: reduce) {
+    .cascata > *,
+    .animate-assentar,
+    .animate-brilho,
+    .animate-panorama {
+      animation: none !important;
+    }
+  }
+
+  /* Painel/arquivo: sensação de papel sobre a mesa escura */
+  .painel {
+    border: 1px solid var(--color-noite-700);
+    border-radius: 0.5rem;
+    background-color: color-mix(in srgb, var(--color-noite-850) 92%, transparent);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  }
+
+  /* Etiqueta de campo, tipografia de máquina de escrever */
+  .etiqueta {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-papel-500);
+  }
+
+  /* Carimbo "CONFIDENCIAL" */
+  .selo {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--color-sangue-400);
+    border: 1px solid color-mix(in srgb, var(--color-sangue-500) 70%, transparent);
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* ---------- Quadro de investigação ---------- */
+
+  /* Painel de feltro escuro dentro de moldura de madeira */
+  .quadro {
+    position: relative;
+    /**
+     * Vira um contêiner de consulta: tudo que está pregado nele é dimensionado
+     * em `cqh` (porcentagem da altura do quadro). Assim o quadro inteiro escala
+     * junto com a janela, sem nunca precisar de rolagem.
+     */
+    container-type: size;
+    border: 10px solid var(--color-madeira-700);
+    border-radius: 0.5rem;
+    background-color: #14191f;
+    /* Trama de feltro: dois gradientes finos e baratos, sem imagem externa */
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.014) 0 2px,
+        transparent 2px 4px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.18) 0 2px,
+        transparent 2px 4px
+      ),
+      radial-gradient(70% 60% at 50% 40%, rgba(207, 143, 44, 0.07), transparent);
+    box-shadow:
+      inset 0 0 90px rgba(0, 0, 0, 0.7),
+      0 26px 60px -34px rgba(0, 0, 0, 1);
+  }
+
+  /* Qualquer objeto pregado no quadro */
+  .objeto {
+    position: absolute;
+    transform: translate(-50%, -50%) rotate(var(--rot, 0deg));
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      filter 0.2s ease;
+  }
+  .objeto:hover,
+  .objeto:focus-visible {
+    transform: translate(-50%, -50%) rotate(0deg) scale(1.06);
+    filter: brightness(1.06);
+    z-index: 30;
+    outline: none;
+  }
+  .objeto:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-ambar-400);
+  }
+
+  /* Papel claro sobre o quadro escuro: documentos, fichas, fotos */
+  .papelzinho {
+    background-image: linear-gradient(
+      165deg,
+      var(--color-papel-50),
+      var(--color-papel-100) 70%,
+      #ddd6c6
+    );
+    color: var(--color-noite-900);
+    box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.95);
+  }
+
+  /* Lembrete adesivo âmbar */
+  .lembrete {
+    background-image: linear-gradient(
+      160deg,
+      var(--color-ambar-300),
+      var(--color-ambar-400)
+    );
+    color: #2b1d05;
+    box-shadow: 0 10px 20px -12px rgba(0, 0, 0, 0.9);
+  }
+
+  /* Alfinete no topo do objeto. Escala com o quadro, como o resto. */
+  .pino {
+    position: absolute;
+    top: -0.6cqh;
+    left: 50%;
+    height: 1.3cqh;
+    width: 1.3cqh;
+    min-height: 6px;
+    min-width: 6px;
+    transform: translateX(-50%);
+    border-radius: 9999px;
+    background-image: radial-gradient(
+      circle at 32% 30%,
+      #ff8f80,
+      var(--color-sangue-500) 55%,
+      var(--color-sangue-600)
+    );
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  }
+  .pino-ambar {
+    background-image: radial-gradient(
+      circle at 32% 30%,
+      #ffe0a8,
+      var(--color-ambar-500) 55%,
+      var(--color-ambar-600)
+    );
+  }
+
+  /* Linhas pautadas da ficha de investigação */
+  .pauta {
+    background-image: repeating-linear-gradient(
+      transparent 0 1.55rem,
+      rgba(11, 15, 22, 0.18) 1.55rem 1.6rem
+    );
+  }
+
+  /* Campo de texto padrão do dossiê */
+  .campo {
+    width: 100%;
+    background-color: color-mix(in srgb, var(--color-noite-900) 85%, transparent);
+    border: 1px solid var(--color-noite-600);
+    border-radius: 0.375rem;
+    padding: 0.7rem 0.85rem;
+    color: var(--color-papel-50);
+    outline: none;
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  .campo::placeholder {
+    color: color-mix(in srgb, var(--color-papel-500) 80%, transparent);
+  }
+  .campo:focus {
+    border-color: var(--color-ambar-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ambar-500) 18%, transparent);
+  }
+}

@@ -1,0 +1,11 @@
+# Nada de chaves, dependências ou build local na publicação.
+.env*
+node_modules
+.next
+.claude
+*.tsbuildinfo
+
+# Artes antigas e originais soltos na raiz: não fazem parte do jogo.
+arte-antiga
+*.jfif
+public/capa.png
