@@ -44,7 +44,7 @@ export default function MenuInicial() {
        * inteira passava da dobra e a página ganhava rolagem.
        */}
       <div
-        className="relative aspect-[43/24] w-full overflow-hidden sm:rounded-xl sm:border sm:border-noite-700"
+        className="relative aspect-[43/24] w-full overflow-hidden palco:rounded-xl palco:border palco:border-noite-700"
         style={{ maxWidth: "min(1376px, calc(100dvh * 43 / 24))" }}
       >
         {/* Arte e etiquetas no mesmo bloco animado: assim o leve movimento de
@@ -66,13 +66,13 @@ export default function MenuInicial() {
             className="h-full w-full object-cover"
           />
           <span
-            className="cracha animate-entrada absolute hidden -rotate-2 sm:block"
+            className="cracha animate-entrada absolute hidden -rotate-2 palco:block"
             style={{ left: "9%", top: "80%", animationDelay: "0.5s" }}
           >
             Detetive Claudio
           </span>
           <span
-            className="cracha animate-entrada absolute hidden rotate-2 sm:block"
+            className="cracha animate-entrada absolute hidden rotate-2 palco:block"
             style={{ right: "9%", top: "80%", animationDelay: "0.62s" }}
           >
             Detetive Bianca
@@ -83,7 +83,7 @@ export default function MenuInicial() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_45%,transparent_35%,rgba(7,10,16,0.55)_78%,rgba(7,10,16,0.95)_100%)]" />
         {/* Foco escuro atrás da ficha, para ela destacar do quadro */}
         <div
-          className="pointer-events-none absolute inset-0 hidden sm:block"
+          className="pointer-events-none absolute inset-0 hidden palco:block"
           style={{
             backgroundImage:
               "radial-gradient(28% 42% at 50% 64%, rgba(7,10,16,0.8) 45%, transparent 100%)",
@@ -93,7 +93,7 @@ export default function MenuInicial() {
         {/* ---------- Ficha real, na metade de baixo do quadro ---------- */}
         <form
           onSubmit={continuar}
-          className="papelzinho animate-assentar absolute left-1/2 hidden w-[min(30%,26rem)] min-w-72 -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 sm:block"
+          className="papelzinho animate-assentar absolute left-1/2 hidden w-[min(30%,26rem)] min-w-72 -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 palco:block"
           style={{ top: "64%" }}
         >
           <span className="pino pino-ambar" aria-hidden="true" />
@@ -110,7 +110,7 @@ export default function MenuInicial() {
       {/* ---------- Mesma ficha, embaixo da arte, no celular ---------- */}
       <form
         onSubmit={continuar}
-        className="papelzinho animate-entrada -mt-10 w-[calc(100%-2.5rem)] max-w-md rounded-sm px-5 py-5 sm:hidden"
+        className="papelzinho animate-entrada -mt-10 w-[calc(100%-2.5rem)] max-w-md rounded-sm px-5 py-5 palco:hidden"
       >
         <FichaDeDupla
           nome1={nome1}

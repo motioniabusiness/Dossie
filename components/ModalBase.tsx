@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   /** Linha superior pequena: tipo do arquivo, numeração, etc. */
@@ -46,12 +47,16 @@ export default function ModalBase({
 
   const papel = tom === "papel";
 
-  return (
-    /**
-     * No celular o arquivo sobe de baixo como uma folha e rola por dentro, com
-     * o cabeçalho parado: o botão de fechar nunca some no meio de uma ficha
-     * comprida. No computador continua centralizado.
-     */
+  /**
+   * Vai direto para o <body>: a troca de fase anima a página com escala e
+   * desfoque, e qualquer elemento `fixed` lá dentro passaria a se posicionar
+   * pelo bloco animado, não pela tela.
+   *
+   * No celular o arquivo sobe de baixo como uma folha e rola por dentro, com
+   * o cabeçalho parado: o botão de fechar nunca some no meio de uma ficha
+   * comprida. No computador continua centralizado.
+   */
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-noite-950/85 backdrop-blur-sm sm:items-center sm:p-6"
       onClick={onFechar}
@@ -115,6 +120,7 @@ export default function ModalBase({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * Tela larga E alta o bastante para a ficha do menu flutuar sobre a arte.
+ * Celular deitado tem largura de sobra mas pouca altura, e ali a ficha era
+ * maior que o desenho e perdia o rodapé.
+ */
+@custom-variant palco (@media (min-width: 640px) and (min-height: 520px));
+
 /* ==========================================================================
    Tema "dossiê confidencial" — tokens de cor, fonte e animação.
    No Tailwind v4 as chaves em @theme geram utilitários (bg-noite-900, etc.).

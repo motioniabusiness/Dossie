@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 import Botao from "./Botao";
 import Cronometro from "./Cronometro";
 import FichaSuspeito from "./FichaSuspeito";
@@ -296,7 +297,11 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
         </footer>
       </div>
 
-      {/* ---------- Ações (celular): barra presa embaixo ---------- */}
+      {/* ---------- Ações (celular): barra presa embaixo ----------
+          Vai para o <body> pelo mesmo motivo das janelas (ver ModalBase):
+          dentro do bloco animado da troca de fase, `fixed` sairia do lugar.
+          A sala só existe no navegador, então `document` sempre está lá. */}
+      {createPortal(
       <nav
         aria-label="Ações da investigação"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-noite-700 bg-noite-950/95 px-4 pt-3 backdrop-blur-md md:hidden"
@@ -352,7 +357,9 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
             </Botao>
           </div>
         )}
-      </nav>
+      </nav>,
+      document.body,
+      )}
 
       {/* ---------- Arquivos abertos ---------- */}
       {indicePistaAberta >= 0 && (
