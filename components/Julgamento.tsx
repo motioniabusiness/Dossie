@@ -81,7 +81,24 @@ export default function Julgamento() {
   return (
     <TelaCarregando
       mensagem="O júri está lendo"
-      nota="Comparando as duas versões com a solução do caso, sob o mesmo critério."
+      nota="As versões são comparadas com a solução do caso, sob o mesmo critério."
+      duracaoEstimada={14}
+      etapas={
+        estado.config?.modo === "cooperativo"
+          ? [
+              "Abrindo o envelope da solução",
+              "Lendo a teoria da dupla",
+              "Conferindo cada pista citada",
+              "Dando a nota",
+            ]
+          : [
+              "Abrindo o envelope da solução",
+              `Lendo a versão de ${estado.jogador1}`,
+              `Lendo a versão de ${estado.jogador2}`,
+              "Conferindo as pistas citadas",
+              "Dando as notas",
+            ]
+      }
       erro={anfitriao ? erro : null}
       onTentarNovamente={() => setTentativa((t) => t + 1)}
     />

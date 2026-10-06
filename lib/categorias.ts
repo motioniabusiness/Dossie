@@ -24,7 +24,8 @@ export const CATEGORIAS: DefinicaoCategoria[] = [
   },
   {
     id: "desaparecimento",
-    nome: "Desaparecimento",
+    // Hífen invisível: no celular a palavra quebra em duas linhas, com hífen.
+    nome: "Desapareci­mento",
     descricao: "Alguém sumiu, e alguém sabe exatamente por quê.",
   },
 ];
@@ -41,6 +42,8 @@ export const MAX_MINUTOS = 180;
 export interface DefinicaoDificuldade {
   id: Dificuldade;
   nome: string;
+  /** Classificação do arquivo, como num carimbo de pasta policial. */
+  sigilo: string;
   descricao: string;
 }
 
@@ -48,18 +51,21 @@ export const DIFICULDADES: DefinicaoDificuldade[] = [
   {
     id: "facil",
     nome: "Fácil",
+    sigilo: "Rotina",
     descricao:
       "Uma linha de dedução. As pistas dizem quase tudo, falta juntar duas ou três.",
   },
   {
     id: "medio",
     nome: "Médio",
+    sigilo: "Sigiloso",
     descricao:
       "Duas camadas e uma falsa pista convincente. Exige cruzar horários e depoimentos.",
   },
   {
     id: "dificil",
     nome: "Difícil",
+    sigilo: "Ultras­secreto",
     descricao:
       "Reviravolta, duas falsas pistas e uma peça que só faz sentido no fim. Sem piedade.",
   },

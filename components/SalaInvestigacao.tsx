@@ -9,10 +9,15 @@ import IconePista, { ROTULO_TIPO } from "./IconePista";
 import ModalBriefing from "./ModalBriefing";
 import ModalPista from "./ModalPista";
 import ModalPistaPrivada from "./ModalPistaPrivada";
-import QuadroInvestigacao from "./QuadroInvestigacao";
+import { IconeLupa, IconeMicrofone, IconeSelo } from "./Icones";
+import QuadroInvestigacao, { numeroDoCaso } from "./QuadroInvestigacao";
 import RetratoSuspeito from "./RetratoSuspeito";
 import { nomeCategoria, nomeDificuldade } from "@/lib/categorias";
-import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
+import {
+  PERGUNTAS_POR_CASO,
+  useJogo,
+  usePapel,
+} from "@/lib/estado/JogoProvider";
 import { donoDaPista } from "@/lib/pistasPrivadas";
 import type { CasoPublico } from "@/lib/tipos";
 
@@ -91,6 +96,20 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
     donos[id] = estado.jogador2.split(" ").pop() ?? estado.jogador2;
   }
 
+  /**
+   * Arquivos que não mostram prévia neste aparelho. No mesmo aparelho, todos
+   * os privados (o dono abre pelo portão). À distância, só os do outro.
+   */
+  const minhas = papel.online
+    ? papel.eu === 2
+      ? estado.pistasPrivadas.jogador2
+      : estado.pistasPrivadas.jogador1
+    : [];
+  const lacradas = new Set(
+    Object.keys(donos).filter((id) => !minhas.includes(id)),
+  );
+  const interrogados = new Set(estado.interrogatorios.map((t) => t.suspeito));
+
   return (
     /**
      * A sala ocupa exatamente a altura da janela e não rola: o quadro é o
@@ -103,26 +122,62 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
         className="sticky top-0 z-40 shrink-0 border-b border-noite-700 bg-noite-950/85 backdrop-blur-md"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-8">
-          <div className="min-w-0">
-            <p className="etiqueta truncate">
-              {nomeCategoria(caso.categoria)}
-              {estado.config
-                ? ` · ${nomeDificuldade(estado.config.dificuldade)}`
-                : ""}
-              {online && (
-                <span className="text-ambar-400"> · sala {online.codigo}</span>
-              )}
-              <span className="hidden sm:inline">
-                {" "}
-                · {estado.jogador1} vs {estado.jogador2}
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-2.5 sm:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            {/* Aba de pasta com o número do caso */}
+            <span className="manila hidden shrink-0 border-2 border-tinta px-2 py-1 text-center font-mono text-[0.68rem] leading-tight font-bold tracking-[0.14em] uppercase shadow-[3px_3px_0_0_rgba(0,0,0,0.6)] sm:block">
+              Caso
+              <span className="block font-maquina text-base tracking-[0.06em]">
+                {numeroDoCaso(caso.id)}
               </span>
-            </p>
-            <h1 className="truncate font-mono text-base text-papel-50 sm:text-lg">
-              {caso.titulo}
-            </h1>
+            </span>
+            <div className="min-w-0">
+              <p className="etiqueta truncate">
+                {nomeCategoria(caso.categoria)}
+                {estado.config
+                  ? ` · ${nomeDificuldade(estado.config.dificuldade)}`
+                  : ""}
+                {online && (
+                  <span className="text-ambar-400"> · sala {online.codigo}</span>
+                )}
+              </p>
+              <h1 className="truncate font-maquina text-lg leading-tight text-papel-50 sm:text-2xl">
+                {caso.titulo}
+              </h1>
+            </div>
           </div>
-          <Cronometro fimEm={fimEm} onTempoEsgotado={irParaVeredito} />
+
+          <div className="flex shrink-0 items-center gap-5">
+            {/* Placar da investigação: o que já foi lido e quantas perguntas sobram */}
+            <div className="hidden items-center gap-5 lg:flex">
+              <div className="flex flex-col items-end gap-0.5" title="Evidências analisadas">
+                <span className="etiqueta">Evidências</span>
+                <span className="flex items-center gap-1.5 font-maquina text-lg leading-none text-papel-50">
+                  <IconeLupa className="h-4 w-4 text-ambar-400" />
+                  {estado.pistasVistas.length}
+                  <span className="text-papel-500">/{caso.pistas.length}</span>
+                </span>
+              </div>
+              <div className="flex flex-col items-end gap-0.5" title="Perguntas de interrogatório restantes">
+                <span className="etiqueta">Perguntas</span>
+                <span className="flex gap-0.5" aria-label={`${estado.perguntasRestantes} de ${PERGUNTAS_POR_CASO} perguntas restantes`}>
+                  {Array.from({ length: PERGUNTAS_POR_CASO }, (_, n) => (
+                    <IconeMicrofone
+                      key={n}
+                      className={`h-[18px] w-[18px] ${
+                        n < estado.perguntasRestantes ? "text-ambar-400" : "text-noite-600"
+                      }`}
+                    />
+                  ))}
+                </span>
+              </div>
+            </div>
+            <Cronometro
+              fimEm={fimEm}
+              totalMs={(estado.config?.minutos ?? 40) * 60_000}
+              onTempoEsgotado={irParaVeredito}
+            />
+          </div>
         </div>
 
         {/* Abas do celular: presas no cabeçalho, sempre à mão do polegar */}
@@ -159,22 +214,14 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
       </header>
 
       <div className="animate-entrada mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 pt-4 pb-32 sm:px-8 md:min-h-0 md:pb-4">
-        <div className="hidden shrink-0 flex-wrap items-baseline justify-between gap-3 md:flex">
-          <p className="etiqueta">
-            Quadro de investigação · clique em qualquer item para abrir
-          </p>
-          <span className="font-mono text-xs text-papel-500">
-            {estado.pistasVistas.length}/{caso.pistas.length} evidências
-            analisadas
-          </span>
-        </div>
-
         {/* ---------- Quadro (telas médias para cima) ---------- */}
         <div className="hidden min-h-0 flex-1 justify-center md:flex">
           <QuadroInvestigacao
             caso={caso}
             fotos={estado.fotosSuspeitos}
             donos={donos}
+            lacradas={lacradas}
+            interrogados={interrogados}
             pistasVistas={estado.pistasVistas}
             onAbrirSuspeito={(indice) => setAberto({ tipo: "suspeito", indice })}
             onAbrirPista={abrirPista}
@@ -184,13 +231,16 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
 
         {/* ---------- Lista equivalente no celular ---------- */}
         <div className="flex flex-col gap-5 md:hidden">
+          {/* O caso, como a pasta de cartolina do quadro */}
           <button
             type="button"
             onClick={() => setAberto({ tipo: "briefing" })}
-            className="painel flex flex-col items-start gap-1.5 px-4 py-3.5 text-left active:border-ambar-500/60"
+            className="manila relative flex flex-col items-start gap-1.5 border-2 border-tinta px-4 pt-3 pb-3.5 text-left shadow-[4px_4px_0_0_rgba(0,0,0,0.6)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
-            <span className="etiqueta">O caso · toque para ler o briefing</span>
-            <span className="line-clamp-2 text-xs leading-relaxed text-papel-300">
+            <span className="font-mono text-[0.68rem] font-bold tracking-[0.22em] text-sangue-600 uppercase">
+              Caso {numeroDoCaso(caso.id)} · toque para o briefing
+            </span>
+            <span className="line-clamp-2 font-mono text-[0.8rem] leading-snug text-tinta/80">
               {caso.contexto}
             </span>
           </button>
@@ -204,19 +254,29 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
                   key={s.nome}
                   type="button"
                   onClick={() => setAberto({ tipo: "suspeito", indice: i })}
-                  className="papelzinho flex flex-col gap-2 rounded-sm p-2 text-left"
+                  className={`papelzinho relative flex flex-col gap-1.5 p-2 pb-2.5 text-left active:scale-[0.98] ${
+                    i % 2 ? "rotate-[0.8deg]" : "-rotate-[0.8deg]"
+                  }`}
                 >
                   <RetratoSuspeito
                     suspeito={s}
                     fotoId={estado.fotosSuspeitos[i]}
                     className="aspect-square w-full"
                   />
-                  <span className="truncate font-mono text-[0.6875rem] tracking-[0.08em] text-noite-900 uppercase">
+                  <span className="truncate font-maquina text-[0.95rem] leading-tight text-tinta">
                     {s.nome}
                   </span>
-                  <span className="truncate text-[0.625rem] tracking-[0.1em] text-noite-900/55 uppercase">
+                  <span className="truncate font-mono text-[0.65rem] tracking-[0.08em] text-tinta/55 uppercase">
                     {s.ocupacao ?? "Abrir ficha"}
                   </span>
+                  {interrogados.has(s.nome) && (
+                    <span
+                      className="carimbo absolute top-3 right-2 bg-papel-50/80 text-[0.62rem]"
+                      style={{ "--giro": "10deg" } as React.CSSProperties}
+                    >
+                      Ouvido
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -229,43 +289,45 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
             <div className="flex flex-col gap-2.5">
               {caso.pistas.map((p, i) => {
                 const vista = estado.pistasVistas.includes(p.id);
+                const lacrada = lacradas.has(p.id);
                 return (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => abrirPista(p.id)}
-                    className={`painel flex items-center gap-3 px-4 py-3.5 text-left active:border-ambar-500/60 ${
-                      vista ? "border-noite-600 bg-noite-800/40" : ""
-                    }`}
+                    className="papelzinho relative flex items-start gap-3 px-3.5 py-3 text-left active:scale-[0.99]"
                   >
-                    <span
-                      className={vista ? "text-ambar-400" : "text-papel-500"}
-                    >
-                      <IconePista tipo={p.tipo} />
-                    </span>
+                    <IconePista tipo={p.tipo} className="mt-0.5 h-6 w-6 shrink-0" />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm leading-snug font-medium text-papel-50">
+                      <span className="block pr-14 font-mono text-[0.9rem] leading-snug font-bold text-tinta">
                         {p.titulo}
                       </span>
-                      <span className="mt-1 line-clamp-2 block text-xs leading-snug text-papel-300">
+                      <span className="mt-1 line-clamp-2 font-mono text-[0.75rem] leading-snug text-tinta/65">
                         {donos[p.id]
-                          ? papel.online &&
-                            donoDaPista(p.id, estado.pistasPrivadas) ===
-                              (papel.eu === 1 ? "jogador1" : "jogador2")
-                            ? "Arquivo secreto seu. Só você vê o que tem aqui."
-                            : `Arquivo lacrado, só ${donos[p.id]} pode abrir.`
+                          ? lacrada
+                            ? `Arquivo lacrado. Só ${donos[p.id]} pode abrir.`
+                            : "Arquivo secreto seu. Só você vê o que tem aqui."
                           : p.tipo === "foto" && p.legendaFoto
                             ? p.legendaFoto
                             : p.conteudo}
                       </span>
-                      <span className="etiqueta mt-1.5 block">
-                        {ROTULO_TIPO[p.tipo]} ·{" "}
-                        {donos[p.id]
-                          ? `restrito a ${donos[p.id]}`
-                          : numeroArquivo(i, caso.pistas.length)}
-                        {vista ? " · ✓ analisado" : ""}
+                      <span className="mt-1.5 flex items-center gap-2 font-mono text-[0.65rem] font-bold tracking-[0.14em] text-tinta/50 uppercase">
+                        {ROTULO_TIPO[p.tipo]} · {numeroArquivo(i, caso.pistas.length)}
+                        {donos[p.id] && (
+                          <span className="bg-sangue-500 px-1.5 py-px text-papel-50">
+                            Só {donos[p.id]}
+                          </span>
+                        )}
                       </span>
                     </span>
+                    {vista && (
+                      <span
+                        className="carimbo absolute top-2.5 right-2 text-[0.6rem]"
+                        style={{ "--giro": "8deg" } as React.CSSProperties}
+                      >
+                        Analisado
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -275,36 +337,50 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
         </div>
 
         {/* ---------- Ações (computador) ---------- */}
-        <footer className="hidden shrink-0 flex-col gap-4 border-t border-noite-700 pt-4 md:flex">
-          {confirmandoVeredito ? (
-            <div className="painel animate-entrada flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-papel-100">
-                Encerrar a investigação agora? Os arquivos não podem ser
-                reabertos depois do veredito.
+        <footer className="hidden shrink-0 items-center justify-between gap-4 border-t-2 border-noite-700 pt-3.5 md:flex">
+          {confirmandoVeredito || confirmandoPulo ? (
+            <div className="animate-entrada flex w-full items-center justify-between gap-4">
+              <p className="font-mono text-sm text-papel-100">
+                {confirmandoVeredito
+                  ? "Encerrar a investigação agora? Os arquivos não podem ser reabertos depois do veredito."
+                  : "Descartar este caso e gerar outro? O cronômetro continua correndo."}
               </p>
               <div className="flex shrink-0 gap-3">
                 <Botao
                   variante="fantasma"
-                  onClick={() => setConfirmandoVeredito(false)}
+                  onClick={() => {
+                    setConfirmandoVeredito(false);
+                    setConfirmandoPulo(false);
+                  }}
                 >
                   Voltar ao caso
                 </Botao>
-                <Botao onClick={irParaVeredito}>Sim, encerrar</Botao>
+                {confirmandoVeredito ? (
+                  <Botao onClick={irParaVeredito}>
+                    <IconeSelo className="h-4 w-4" />
+                    Sim, encerrar
+                  </Botao>
+                ) : (
+                  <Botao onClick={() => dispatch({ tipo: "PULAR_CASO" })}>
+                    Pular caso
+                  </Botao>
+                )}
               </div>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <>
               <Botao
-                variante="secundario"
-                onClick={() => dispatch({ tipo: "PULAR_CASO" })}
+                variante="fantasma"
+                onClick={() => setConfirmandoPulo(true)}
                 title="Descarta este caso e gera outro; o cronômetro continua correndo."
               >
                 Já conheço este caso, pular
               </Botao>
-              <Botao onClick={() => setConfirmandoVeredito(true)}>
+              <Botao onClick={() => setConfirmandoVeredito(true)} className="px-7">
+                <IconeSelo className="h-4 w-4" />
                 Estamos prontos para o veredito
               </Botao>
-            </div>
+            </>
           )}
         </footer>
       </div>

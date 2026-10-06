@@ -73,6 +73,50 @@ export function registrarCusto(etiqueta: string, uso: UsoBruto, segundos: number
 
 export class ErroConfiguracao extends Error {}
 
+/**
+ * Traduz qualquer falha de uma chamada à IA em mensagem para a tela e status
+ * HTTP. Fica num lugar só para as três rotas falarem a mesma língua.
+ *
+ * O caso que mais importa: créditos esgotados. A API devolve um 400 genérico,
+ * e sem tradução o jogador via "Falha na API (400)" sem saber o que fazer.
+ */
+export function erroDaIA(
+  e: unknown,
+  etiqueta: string,
+): { mensagem: string; status: number } {
+  if (e instanceof ErroConfiguracao) return { mensagem: e.message, status: 500 };
+
+  if (e instanceof Anthropic.APIError) {
+    const texto = `${e.message} ${JSON.stringify(e.error ?? "")}`;
+    if (/credit balance|billing|purchase credits/i.test(texto)) {
+      console.error(`[${etiqueta}] créditos esgotados`);
+      return {
+        mensagem:
+          "Os créditos da IA acabaram. Recarregue em console.anthropic.com, na área de Billing, e tente de novo.",
+        status: 402,
+      };
+    }
+    if (e instanceof Anthropic.RateLimitError) {
+      return { mensagem: "Muitas chamadas seguidas à IA. Aguarde um instante e tente de novo.", status: 429 };
+    }
+    if (e instanceof Anthropic.AuthenticationError) {
+      return { mensagem: "A chave da IA foi recusada. Confira a ANTHROPIC_API_KEY.", status: 401 };
+    }
+    if (e instanceof Anthropic.APIConnectionError) {
+      return { mensagem: "Sem conexão com a IA agora. Tente de novo.", status: 503 };
+    }
+    if (e.status === 529 || e.status === 503) {
+      return { mensagem: "A IA está sobrecarregada neste momento. Tente de novo em instantes.", status: 503 };
+    }
+    // Sem isto no log, um 400 de parâmetro fica indistinguível de um 400 de conteúdo.
+    console.error(`[${etiqueta}] APIError ${e.status}: ${e.message}`);
+    return { mensagem: `A IA respondeu com erro (${e.status}). Tente de novo.`, status: 502 };
+  }
+
+  console.error(`[${etiqueta}] erro inesperado:`, e);
+  return { mensagem: "Erro inesperado. Tente de novo.", status: 500 };
+}
+
 /** Cliente da Anthropic. Só pode ser usado em código de servidor. */
 export function clienteAnthropic(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY;

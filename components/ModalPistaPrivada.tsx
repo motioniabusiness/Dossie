@@ -4,6 +4,21 @@ import Botao from "./Botao";
 import RetratoJogador from "./RetratoJogador";
 import ModalBase from "./ModalBase";
 
+/** Retrato do dono com o carimbo vermelho de lacrado por cima. */
+function RetratoLacrado({ dono }: { dono: 1 | 2 }) {
+  return (
+    <div className="relative">
+      <RetratoJogador jogador={dono} ativo className="h-36 w-28 -rotate-2" />
+      <span
+        className="carimbo carimbo-claro animate-carimbar absolute -right-8 bottom-4 bg-noite-900/80 text-lg"
+        style={{ "--giro": "-14deg" } as React.CSSProperties}
+      >
+        Lacrado
+      </span>
+    </div>
+  );
+}
+
 /**
  * Portão de um arquivo privado. O conteúdo só aparece depois que o dono do
  * arquivo confirma que está com o aparelho, então o outro detetive nunca lê
@@ -39,9 +54,9 @@ export default function ModalPistaPrivada({
         larguraMax="max-w-lg"
       >
         <div className="flex flex-col items-center gap-6 text-center">
-          <RetratoJogador jogador={dono} ativo className="h-32 w-24" />
+          <RetratoLacrado dono={dono} />
           <div className="flex flex-col gap-2">
-            <p className="font-mono text-lg text-papel-50">
+            <p className="font-maquina text-xl text-papel-50">
               Este arquivo é de {nomeDono}
             </p>
             <p className="text-sm leading-relaxed text-papel-300">
@@ -66,10 +81,10 @@ export default function ModalPistaPrivada({
       larguraMax="max-w-lg"
     >
       <div className="flex flex-col items-center gap-6 text-center">
-        <RetratoJogador jogador={dono} ativo className="h-32 w-24" />
+        <RetratoLacrado dono={dono} />
 
         <div className="flex flex-col gap-2">
-          <p className="font-mono text-lg text-papel-50">
+          <p className="font-maquina text-xl text-papel-50">
             Este arquivo é de {nomeDono}
           </p>
           <p className="text-sm leading-relaxed text-papel-300">

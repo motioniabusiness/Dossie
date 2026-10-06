@@ -42,6 +42,27 @@
   --color-madeira-700: #33261d;
   --color-madeira-800: #241a14;
 
+  /* Tinta de impressão: o contorno preto das artes do menu */
+  --color-tinta: #0b0d10;
+
+  /* Verde-petróleo do fundo das artes, para unir a interface ao desenho */
+  --color-petroleo-600: #2a4a4e;
+  --color-petroleo-700: #1d3539;
+  --color-petroleo-800: #142629;
+  --color-petroleo-900: #0d191c;
+
+  /* Cartolina de pasta de arquivo */
+  --color-manila-200: #ecd9a8;
+  --color-manila-300: #e2c78a;
+  --color-manila-400: #d2b06b;
+
+  /* Carimbo batendo no papel: entra grande e assenta com um tranco. */
+  --animate-carimbar: carimbar 0.42s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  /* Cursor de máquina de escrever piscando. */
+  --animate-cursor: cursor 1s steps(1) infinite;
+  /* Revelação lenta, para a solução do caso. */
+  --animate-revelar: revelar 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+
   --animate-entrada: entrada 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-varredura: varredura 1.6s ease-in-out infinite;
   /* Folha caindo no quadro: entra girada e assenta reta. */
@@ -69,7 +90,56 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Rótulos e números datilografados */
+  --font-mono: var(--font-courier-prime);
+  /* Títulos e carimbos, com a tinta falhando */
+  --font-maquina: var(--font-special-elite);
+}
+
+@keyframes carimbar {
+  0% {
+    opacity: 0;
+    transform: scale(2.4) rotate(var(--giro, -8deg));
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.94) rotate(var(--giro, -8deg));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(var(--giro, -8deg));
+  }
+}
+
+@keyframes cursor {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes revelar {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/*
+ * Texturas geradas, sem arquivo externo: grão de papel e grão de filme. O
+ * ruído é um feTurbulence com a cor zerada, então só a transparência varia.
+ */
+:root {
+  --grao-papel: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.18  0 0 0 0 0.08  0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
+  --grao-filme: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
 }
 
 @keyframes entrada {
@@ -112,13 +182,19 @@
   }
 }
 
+/*
+ * Pulso no contorno externo, e não na sombra: a sombra dura deslocada é a
+ * identidade do botão de tinta e não pode sumir durante a animação.
+ */
 @keyframes brilho {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(227, 171, 82, 0);
+    outline: 2px solid rgba(227, 171, 82, 0);
+    outline-offset: 3px;
   }
   50% {
-    box-shadow: 0 0 22px 2px rgba(227, 171, 82, 0.28);
+    outline: 2px solid rgba(227, 171, 82, 0.5);
+    outline-offset: 6px;
   }
 }
 
@@ -171,19 +247,78 @@
   body {
     background-color: var(--color-noite-950);
     color: var(--color-papel-100);
-    /* Luz de mesa vinda de cima + penumbra marinha no canto inferior */
+    /*
+     * Luz de mesa vinda de cima e a penumbra verde-petróleo das artes do
+     * menu: a interface parece continuar o mesmo escritório do desenho.
+     */
     background-image:
       radial-gradient(
-        120% 80% at 50% -15%,
-        rgba(207, 143, 44, 0.12),
+        110% 75% at 50% -18%,
+        rgba(207, 143, 44, 0.13),
         transparent 60%
       ),
       radial-gradient(
-        90% 70% at 100% 110%,
-        rgba(20, 40, 70, 0.55),
+        80% 70% at 0% 105%,
+        rgba(29, 53, 57, 0.75),
+        transparent 70%
+      ),
+      radial-gradient(
+        70% 60% at 100% 100%,
+        rgba(20, 38, 41, 0.6),
         transparent 70%
       );
     background-attachment: fixed;
+  }
+
+  /*
+   * Carimbos entram ampliados e encolhem: por meio segundo passariam da borda
+   * e a página ganharia rolagem lateral no celular. `clip` corta o excesso sem
+   * criar um contêiner de rolagem, então os rodapés `sticky` seguem funcionando.
+   */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Grão de filme por cima de tudo: tira o aspecto liso de tela de sistema. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-image: var(--grao-filme);
+  }
+
+  /* Seleção de texto na cor do carimbo, e não no azul do sistema. */
+  ::selection {
+    background: color-mix(in srgb, var(--color-ambar-400) 45%, transparent);
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ambar-400);
+    outline-offset: 2px;
+  }
+
+  /* Barras de rolagem finas, na cor do grafite, em vez do cinza do sistema */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3a4453 transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #3a4453;
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ambar-600);
   }
 
   /* Grade discreta de "mesa de trabalho", esmaecida nas bordas */
@@ -244,19 +379,16 @@
 
   /* Etiqueta de identificação presa na arte do menu */
   .cracha {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 0.625rem;
-    letter-spacing: 0.22em;
+    font-family: var(--font-maquina), ui-monospace, monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #2b1d05;
-    background-image: linear-gradient(
-      160deg,
-      var(--color-ambar-300),
-      var(--color-ambar-500)
-    );
-    padding: 0.3rem 0.7rem;
-    border-radius: 0.2rem;
-    box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.9);
+    color: var(--color-tinta);
+    background-color: var(--color-ambar-400);
+    border: 2px solid var(--color-tinta);
+    padding: 0.28rem 0.75rem 0.2rem;
+    border-radius: 2px;
+    box-shadow: 3px 3px 0 0 var(--color-sangue-600);
     white-space: nowrap;
   }
 
@@ -265,40 +397,213 @@
     .cascata > *,
     .animate-assentar,
     .animate-brilho,
-    .animate-panorama {
+    .animate-panorama,
+    .animate-carimbar,
+    .animate-revelar {
       animation: none !important;
     }
   }
 
-  /* Painel/arquivo: sensação de papel sobre a mesa escura */
+  /*
+   * Painel escuro: cartolina preta sobre a mesa. Cantos quase retos e borda
+   * firme, no traço das artes, em vez do cartão arredondado e translúcido.
+   */
   .painel {
-    border: 1px solid var(--color-noite-700);
-    border-radius: 0.5rem;
-    background-color: color-mix(in srgb, var(--color-noite-850) 92%, transparent);
+    border: 1.5px solid #252e3a;
+    border-radius: 3px;
+    background-color: var(--color-noite-850);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.025),
+      transparent 40%
+    );
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.04) inset,
-      0 18px 40px -24px rgba(0, 0, 0, 0.9);
+      0 1px 0 rgba(255, 255, 255, 0.035) inset,
+      0 20px 40px -26px rgba(0, 0, 0, 0.95);
   }
 
   /* Etiqueta de campo, tipografia de máquina de escrever */
   .etiqueta {
     font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 0.6875rem;
-    letter-spacing: 0.18em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--color-papel-500);
   }
 
-  /* Carimbo "CONFIDENCIAL" */
+  /* Carimbo pequeno de cabeçalho ("CASO ENCERRADO", "SALA ABCD") */
   .selo {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 0.625rem;
-    letter-spacing: 0.28em;
+    display: inline-block;
+    font-family: var(--font-maquina), ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
     color: var(--color-sangue-400);
-    border: 1px solid color-mix(in srgb, var(--color-sangue-500) 70%, transparent);
-    border-radius: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    border: 2px solid currentColor;
+    border-radius: 2px;
+    padding: 0.2rem 0.6rem 0.15rem;
+    transform: rotate(-2deg);
+    opacity: 0.92;
+  }
+
+  /* ---------- Botões de tinta ----------
+   * Contorno preto e sombra dura deslocada, como impressão de quadrinho com
+   * o vermelho fora de registro. Ao apertar, o botão "afunda" na sombra.
+   */
+  .botao {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border: 2px solid var(--color-tinta);
+    border-radius: 3px;
+    padding: 0.6rem 1.25rem;
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.15;
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease,
+      background-color 0.15s ease,
+      color 0.15s ease,
+      filter 0.15s ease;
+    user-select: none;
+  }
+  .botao:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.85) brightness(0.7);
+    box-shadow: none;
+    transform: none;
+  }
+
+  .botao-primario {
+    background-color: var(--color-ambar-400);
+    color: var(--color-tinta);
+    box-shadow: 4px 4px 0 0 var(--color-sangue-600);
+  }
+  .botao-primario:enabled:hover {
+    background-color: var(--color-ambar-300);
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 0 var(--color-sangue-600);
+  }
+  .botao-primario:enabled:active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0 0 var(--color-sangue-600);
+  }
+
+  .botao-secundario {
+    background-color: var(--color-papel-100);
+    color: var(--color-tinta);
+    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.55);
+  }
+  .botao-secundario:enabled:hover {
+    background-color: var(--color-papel-50);
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 0.55);
+  }
+  .botao-secundario:enabled:active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.55);
+  }
+
+  .botao-fantasma {
+    border-color: transparent;
+    background: transparent;
+    color: var(--color-papel-300);
+    padding-inline: 0.75rem;
+  }
+  .botao-fantasma:enabled:hover {
+    color: var(--color-ambar-300);
+  }
+
+  /* ---------- Cartão de escolha ----------
+   * Opção da configuração: cartolina escura que, marcada, ganha borda
+   * mostarda e a mesma sombra dura dos botões.
+   */
+  .cartao {
+    position: relative;
+    border: 2px solid #28313d;
+    border-radius: 3px;
+    background-color: var(--color-noite-850);
+    background-image:
+      radial-gradient(rgba(255, 255, 255, 0.045) 0.7px, transparent 0.9px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 50%);
+    background-size:
+      5px 5px,
+      100% 100%;
+    text-align: left;
+    transition:
+      transform 0.14s ease,
+      border-color 0.14s ease,
+      box-shadow 0.14s ease,
+      background-color 0.14s ease;
+  }
+  .cartao:hover {
+    border-color: #3d4858;
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 0 rgba(0, 0, 0, 0.6);
+  }
+  .cartao[aria-pressed="true"],
+  .cartao[aria-checked="true"],
+  .cartao.ativo {
+    border-color: var(--color-ambar-400);
+    background-color: color-mix(in srgb, var(--color-ambar-500) 10%, var(--color-noite-850));
+    box-shadow: 4px 4px 0 0 var(--color-ambar-600);
+    transform: translate(-2px, -2px);
+  }
+
+  /* ---------- Carimbo ----------
+   * Tinta vermelha borrada: borda dupla e o grão do papel "comendo" a tinta.
+   */
+  .carimbo {
+    display: inline-block;
+    font-family: var(--font-maquina), ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-sangue-500);
+    border: 3px double currentColor;
+    border-radius: 3px;
+    padding: 0.15em 0.55em 0.05em;
+    line-height: 1.1;
+    transform: rotate(var(--giro, -8deg));
+    mix-blend-mode: multiply;
+    -webkit-mask-image: var(--grao-papel), linear-gradient(#000, #000);
+    mask-image: var(--grao-papel), linear-gradient(#000, #000);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.9;
+  }
+  /* Sobre fundo escuro, multiplicar some com a tinta: aqui vale a cor pura. */
+  .carimbo-claro {
+    mix-blend-mode: normal;
+    color: var(--color-sangue-400);
+  }
+
+  /* Pedaço de fita adesiva prendendo papel */
+  .fita {
+    position: absolute;
+    height: 1.1rem;
+    width: 4.2rem;
+    background: rgba(236, 222, 186, 0.62);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    border-left: 1px dashed rgba(0, 0, 0, 0.08);
+    border-right: 1px dashed rgba(0, 0, 0, 0.08);
+    transform: rotate(var(--giro, -4deg));
+    pointer-events: none;
+  }
+
+  /* Retícula de impressão (pontos), para fundos de destaque */
+  .reticula {
+    background-image: radial-gradient(
+      rgba(11, 13, 16, 0.22) 0.9px,
+      transparent 1.1px
+    );
+    background-size: 5px 5px;
   }
 
   /* ---------- Quadro de investigação ---------- */
@@ -355,13 +660,23 @@
 
   /* Papel claro sobre o quadro escuro: documentos, fichas, fotos */
   .papelzinho {
-    background-image: linear-gradient(
-      165deg,
-      var(--color-papel-50),
-      var(--color-papel-100) 70%,
-      #ddd6c6
-    );
+    background-color: var(--color-papel-100);
+    background-image:
+      var(--grao-papel),
+      linear-gradient(165deg, var(--color-papel-50), var(--color-papel-100) 70%, #ddd5c2);
     color: var(--color-noite-900);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 14px 26px -16px rgba(0, 0, 0, 0.95);
+  }
+
+  /* Cartolina de pasta de arquivo, para o caso no centro do quadro */
+  .manila {
+    background-color: var(--color-manila-300);
+    background-image:
+      var(--grao-papel),
+      linear-gradient(170deg, var(--color-manila-200), var(--color-manila-300) 60%, var(--color-manila-400));
+    color: var(--color-tinta);
     box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.95);
   }
 
@@ -415,21 +730,45 @@
   /* Campo de texto padrão do dossiê */
   .campo {
     width: 100%;
-    background-color: color-mix(in srgb, var(--color-noite-900) 85%, transparent);
-    border: 1px solid var(--color-noite-600);
-    border-radius: 0.375rem;
+    background-color: var(--color-noite-900);
+    border: 2px solid #2b3441;
+    border-radius: 3px;
     padding: 0.7rem 0.85rem;
     color: var(--color-papel-50);
     outline: none;
     transition:
-      border-color 0.18s ease,
-      box-shadow 0.18s ease;
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
   }
   .campo::placeholder {
     color: color-mix(in srgb, var(--color-papel-500) 80%, transparent);
   }
   .campo:focus {
-    border-color: var(--color-ambar-500);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ambar-500) 18%, transparent);
+    border-color: var(--color-ambar-400);
+    box-shadow: 3px 3px 0 0 var(--color-ambar-600);
+  }
+
+  /* Campo sobre papel claro: tinta escura, linha de caneta embaixo */
+  .campo-papel {
+    width: 100%;
+    border: 2px solid rgba(11, 13, 16, 0.55);
+    border-radius: 2px;
+    background-color: rgba(255, 253, 247, 0.65);
+    padding: 0.55rem 0.75rem;
+    font-family: var(--font-mono), ui-monospace, monospace;
+    color: var(--color-tinta);
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .campo-papel::placeholder {
+    color: rgba(11, 13, 16, 0.32);
+  }
+  .campo-papel:focus {
+    border-color: var(--color-tinta);
+    background-color: #fffdf7;
+    box-shadow: 3px 3px 0 0 var(--color-sangue-500);
   }
 }

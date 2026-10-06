@@ -2,18 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
-import { sortearRetratos } from "@/lib/retratos";
-import type { CasoPublico } from "@/lib/tipos";
+import { adiantar } from "@/lib/proximoCaso";
 
 /**
- * Monta o próximo caso em segundo plano enquanto a dupla escreve as teorias.
- * Escrever leva alguns minutos e o julgamento mais alguns segundos, tempo
- * suficiente para o caso seguinte ficar pronto: a partir da segunda partida a
- * espera vira zero.
+ * Monta o próximo caso em segundo plano enquanto a dupla lê o resultado. Ler
+ * a solução e as notas leva um ou dois minutos, tempo de sobra para o caso
+ * seguinte ficar pronto: a partir da segunda partida a espera vira zero.
  *
- * Roda só no veredito, e não já na investigação, por causa do custo: adiantar
- * um caso gasta uma geração mesmo que vocês parem de jogar depois desta. No
- * veredito a chance de haver uma próxima partida é bem maior.
+ * Roda só depois do julgamento, e não durante o veredito, por dois motivos:
+ * nunca disputa os últimos créditos com o júri, e só gasta quando a partida
+ * atual já terminou de verdade.
  *
  * Não renderiza nada.
  */
@@ -21,6 +19,18 @@ export default function PrepararProximoCaso() {
   const { estado, dispatch } = useJogo();
   const { anfitriao } = usePapel();
   const disparado = useRef(false);
+  /**
+   * Num efeito próprio: o StrictMode monta, desmonta e monta de novo, e um
+   * marcador preso ao efeito do pedido ficaria "desmontado" para sempre.
+   */
+  const montado = useRef(false);
+
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     // À distância, só o aparelho de quem criou a sala adianta o caso.
@@ -29,46 +39,14 @@ export default function PrepararProximoCaso() {
     if (!config || estado.casoPreparado) return;
     disparado.current = true;
 
-    async function preparar() {
-      try {
-        const resposta = await fetch("/api/gerar-caso", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            categoria: config!.categoria,
-            minutos: config!.minutos,
-            dificuldade: config!.dificuldade,
-            resumosVistos: estado.resumosVistos,
-          }),
-        });
-        if (!resposta.ok) return;
-
-        const corpo = (await resposta.json()) as {
-          caso: CasoPublico;
-          solucaoSelada: string;
-        };
-
-        const { fotos, usados } = sortearRetratos(
-          corpo.caso.suspeitos,
-          estado.retratosUsados,
-        );
-
-        dispatch({
-          tipo: "GUARDAR_CASO_PREPARADO",
-          preparado: {
-            caso: corpo.caso,
-            solucaoSelada: corpo.solucaoSelada,
-            fotos,
-            retratosUsados: usados,
-            config: config!,
-          },
-        });
-      } catch {
-        // Falhou em segundo plano: a próxima partida simplesmente gera na hora.
-      }
-    }
-
-    void preparar();
+    void adiantar(config, estado.resumosVistos, estado.retratosUsados).then(
+      (pronto) => {
+        // Se a tela já saiu, quem quiser o caso pega direto do adiantamento.
+        if (pronto && montado.current) {
+          dispatch({ tipo: "GUARDAR_CASO_PREPARADO", preparado: pronto });
+        }
+      },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Botao from "./Botao";
+import { IconeAltoFalante, IconeMicrofone, IconePausa } from "./Icones";
 import {
   CUSTO_DA_PERGUNTA_MS,
   PERGUNTAS_POR_CASO,
@@ -17,6 +18,11 @@ import {
   temVozNatural,
 } from "@/lib/voz";
 import type { CasoPublico, Suspeito } from "@/lib/tipos";
+
+/** Sobra menos tempo no relógio do que uma pergunta custa? Só no clique. */
+function semTempoParaPerguntar(fimEm: number | null) {
+  return fimEm !== null && fimEm - Date.now() <= CUSTO_DA_PERGUNTA_MS;
+}
 
 /**
  * Interrogatório dentro da ficha do suspeito. Cada pergunta custa minutos do
@@ -39,7 +45,13 @@ export default function Interrogatorio({
 
   // A lista de vozes do navegador chega de forma assíncrona.
   useEffect(() => {
-    void carregarVozes().then(() => setVozRobotica(!temVozNatural()));
+    // A dica fala do Edge, então só vale no Windows: no celular não há o que
+    // trocar, e o aviso só confundiria.
+    void carregarVozes().then(() =>
+      setVozRobotica(
+        !temVozNatural() && /Windows/i.test(navigator.userAgent),
+      ),
+    );
     return () => {
       calarVoz();
       abafarTrilha(false);
@@ -81,6 +93,14 @@ export default function Interrogatorio({
 
   async function perguntar() {
     if (!podeEnviar || !estado.solucaoSelada) return;
+    // A pergunta é paga com tempo. Sem tempo para pagar, o desconto zeraria o
+    // cronômetro e a partida pularia para o veredito no meio da resposta.
+    if (semTempoParaPerguntar(estado.fimEm)) {
+      setErro(
+        `Faltam menos de ${minutos} minutos: não dá mais tempo de interrogar.`,
+      );
+      return;
+    }
     // Ainda dentro do toque: libera o som para a resposta que chega depois.
     prepararVoz();
     setCarregando(true);
@@ -136,35 +156,58 @@ export default function Interrogatorio({
     }
   }
 
+  const primeiroNome = suspeito.nome.split(" ")[0];
+
   return (
-    <div className="flex flex-col gap-3 border border-noite-900/25 bg-noite-900/[0.06] px-3 py-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-[0.625rem] tracking-[0.16em] text-noite-900/55 uppercase">
+    /* Sala de interrogatório: bloco escuro dentro da ficha de papel, como a
+       transcrição de uma fita gravada. */
+    <div className="flex flex-col gap-3 border-2 border-tinta bg-tinta px-3.5 py-3.5 text-papel-100 shadow-[4px_4px_0_0_rgba(0,0,0,0.3)]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex items-center gap-2 font-maquina text-base text-ambar-400">
+          <IconeMicrofone className="h-4 w-4" />
           Interrogatório
         </span>
-        <span className="font-mono text-[0.6875rem] text-noite-900/60">
-          {estado.perguntasRestantes} de {PERGUNTAS_POR_CASO} perguntas ·{" "}
+        <span
+          className="flex items-center gap-2 font-mono text-[0.72rem] text-papel-500"
+          aria-label={`${estado.perguntasRestantes} de ${PERGUNTAS_POR_CASO} perguntas restantes`}
+        >
+          <span className="flex gap-0.5">
+            {Array.from({ length: PERGUNTAS_POR_CASO }, (_, n) => (
+              <span
+                key={n}
+                className={`h-2.5 w-2.5 border border-ambar-400 ${
+                  n < estado.perguntasRestantes ? "bg-ambar-400" : "bg-transparent"
+                }`}
+              />
+            ))}
+          </span>
           {minutos} min cada
         </span>
       </div>
 
       {vozRobotica && trocas.length > 0 && (
-        <p className="text-[0.6875rem] leading-relaxed text-noite-900/45">
+        <p className="text-[0.72rem] leading-relaxed text-papel-500">
           Esta máquina só tem as vozes antigas do Windows. Abrindo o jogo no
           Microsoft Edge, os suspeitos falam com vozes naturais.
         </p>
       )}
 
       {trocas.length > 0 && (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3 border-t border-dashed border-papel-500/30 pt-3">
           {trocas.map((t, i) => (
-            <li key={i} className="flex flex-col gap-1">
-              <p className="font-mono text-[0.75rem] text-noite-900/70">
-                Detetives: {t.pergunta}
+            <li key={i} className="flex flex-col gap-1.5">
+              <p className="font-mono text-[0.8rem] leading-snug">
+                <span className="font-bold tracking-[0.1em] text-ambar-400 uppercase">
+                  Detetives:{" "}
+                </span>
+                <span className="text-papel-300">{t.pergunta}</span>
               </p>
-              <div className="flex items-start gap-2 border-l-2 border-sangue-600/40 pl-3">
-                <p className="flex-1 text-[0.8125rem] leading-relaxed text-noite-900 italic">
-                  {t.resposta}
+              <div className="flex items-start gap-2.5">
+                <p className="flex-1 font-mono text-[0.88rem] leading-relaxed">
+                  <span className="font-bold tracking-[0.1em] text-sangue-400 uppercase">
+                    {primeiroNome}:{" "}
+                  </span>
+                  <span className="text-papel-50 italic">{t.resposta}</span>
                 </p>
                 {suportaVoz() && (
                   <button
@@ -174,19 +217,9 @@ export default function Interrogatorio({
                       falando ? "Parar a fala" : "Ouvir esta resposta"
                     }
                     title={falando ? "Parar" : "Ouvir de novo"}
-                    className="shrink-0 rounded-sm border border-noite-900/25 p-1 text-noite-900/60 transition-colors hover:border-sangue-600/60 hover:text-sangue-600"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-papel-500/50 text-papel-300 transition-colors hover:border-ambar-400 hover:text-ambar-300"
                   >
-                    {falando ? (
-                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
-                        <rect x="6" y="5" width="4" height="14" rx="1" />
-                        <rect x="14" y="5" width="4" height="14" rx="1" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                        <path d="M4 9v6h4l5 4V5L8 9H4z" />
-                        <path d="M16.5 8.5a5 5 0 0 1 0 7" />
-                      </svg>
-                    )}
+                    {falando ? <IconePausa /> : <IconeAltoFalante />}
                   </button>
                 )}
               </div>
@@ -196,7 +229,7 @@ export default function Interrogatorio({
       )}
 
       {acabou ? (
-        <p className="text-[0.75rem] leading-relaxed text-noite-900/60">
+        <p className="border-t border-dashed border-papel-500/30 pt-3 font-mono text-[0.8rem] leading-relaxed text-papel-300">
           As três perguntas deste caso já foram usadas. O que não foi perguntado
           vai ter que ser deduzido.
         </p>
@@ -207,24 +240,27 @@ export default function Interrogatorio({
             onChange={(e) => setPergunta(e.target.value)}
             rows={2}
             maxLength={300}
-            placeholder={`O que você quer perguntar a ${suspeito.nome.split(" ")[0]}?`}
+            placeholder={`O que você quer perguntar a ${primeiroNome}?`}
             aria-label={`Pergunta para ${suspeito.nome}`}
-            className="w-full resize-y rounded-sm border border-noite-900/25 bg-papel-50/70 px-3 py-2 font-mono text-[0.8125rem] text-noite-900 outline-none transition-colors placeholder:text-noite-900/35 focus:border-sangue-600/60 focus:bg-papel-50"
+            className="campo resize-y font-mono text-[0.9rem]"
           />
 
           {erro && (
-            <p className="text-[0.75rem] text-sangue-600">{erro}</p>
+            <p role="alert" className="font-mono text-[0.8rem] text-sangue-400">
+              {erro}
+            </p>
           )}
 
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[0.6875rem] text-noite-900/50">
-              Custa {minutos} minutos do cronômetro.
+            <span className="font-mono text-[0.72rem] text-papel-500">
+              Custa {minutos} minutos do relógio.
             </span>
             <Botao
               onClick={perguntar}
               disabled={!podeEnviar}
-              className="px-4 py-1.5 text-xs"
+              className="px-4 text-xs"
             >
+              <IconeMicrofone className="h-4 w-4" />
               {carregando ? "Ouvindo..." : "Perguntar"}
             </Botao>
           </div>

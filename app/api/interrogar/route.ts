@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   ESFORCO,
-  ErroConfiguracao,
+  erroDaIA,
   MODELO,
   clienteAnthropic,
   extrasDeFallback,
@@ -111,18 +111,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ resposta: texto });
   } catch (e) {
-    if (e instanceof ErroConfiguracao) return erro(e.message, 500);
-    if (e instanceof Anthropic.RateLimitError) {
-      return erro("Limite de uso da API atingido. Tente em instantes.", 429);
-    }
-    if (e instanceof Anthropic.APIConnectionError) {
-      return erro("Sem conexão com a API da Anthropic.", 503);
-    }
-    if (e instanceof Anthropic.APIError) {
-      console.error(`[interrogar] APIError ${e.status}: ${e.message}`);
-      return erro(`Falha na API (${e.status}).`, 502);
-    }
-    console.error("[interrogar] erro inesperado:", e);
-    return erro("Erro inesperado no interrogatório.", 500);
+    const { mensagem, status } = erroDaIA(e, "interrogar");
+    return erro(mensagem, status);
   }
 }

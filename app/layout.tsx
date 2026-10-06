@@ -1,15 +1,31 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Courier_Prime, Geist, Special_Elite } from "next/font/google";
 import "./globals.css";
 
+/** Texto corrido: legível em qualquer tamanho, inclusive no celular. */
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+/**
+ * Máquina de escrever limpa, para rótulos, fichas e números: o que nos
+ * documentos de verdade sairia datilografado.
+ */
+const courierPrime = Courier_Prime({
+  variable: "--font-courier-prime",
   subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
+/**
+ * Máquina de escrever gasta, com a tinta falhando: títulos e carimbos. É a
+ * mesma família de letra do título desenhado na arte do menu.
+ */
+const specialElite = Special_Elite({
+  variable: "--font-special-elite",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -38,7 +54,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${courierPrime.variable} ${specialElite.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>

@@ -17,12 +17,12 @@ function Campo({
 }) {
   return (
     <div
-      className={`border border-noite-900/25 bg-noite-900/[0.035] px-3 py-2 ${className}`}
+      className={`border-2 border-tinta/20 bg-papel-50/50 px-3 py-2 ${className}`}
     >
-      <span className="block text-[0.625rem] tracking-[0.16em] text-noite-900/55 uppercase">
+      <span className="block font-mono text-[0.66rem] font-bold tracking-[0.16em] text-tinta/50 uppercase">
         {rotulo}
       </span>
-      <span className="block font-mono text-sm leading-snug text-noite-900">
+      <span className="block font-mono text-[0.95rem] leading-snug text-tinta">
         {valor?.trim() ? valor : "não consta"}
       </span>
     </div>
@@ -32,11 +32,11 @@ function Campo({
 /** Bloco de texto longo sobre linhas pautadas, como um formulário preenchido à mão. */
 function Bloco({ rotulo, texto }: { rotulo: string; texto: string }) {
   return (
-    <div className="border border-noite-900/25 bg-noite-900/[0.035] px-3 pt-2 pb-1">
-      <span className="block text-[0.625rem] tracking-[0.16em] text-noite-900/55 uppercase">
+    <div className="border-2 border-tinta/20 bg-papel-50/50 px-3 pt-2 pb-1">
+      <span className="block font-mono text-[0.66rem] font-bold tracking-[0.16em] text-tinta/50 uppercase">
         {rotulo}
       </span>
-      <p className="pauta font-mono text-[0.8125rem] leading-[1.6rem] text-noite-900">
+      <p className="pauta font-mono text-[0.9rem] leading-[1.6rem] text-tinta">
         {texto}
       </p>
     </div>
@@ -80,17 +80,22 @@ export default function FichaSuspeito({
             <Campo rotulo="Ocupação" valor={suspeito.ocupacao} />
           </div>
 
-          <figure className="flex w-28 shrink-0 flex-col gap-1.5 sm:w-32">
-            <div className="border border-noite-900/30 bg-papel-100 p-1">
+          {/* Foto de ficha policial, presa com fita */}
+          <figure className="relative flex w-28 shrink-0 rotate-2 flex-col gap-1.5 sm:w-36">
+            <span
+              className="fita -top-2 left-1/2 -translate-x-1/2"
+              style={{ "--giro": "-6deg" } as React.CSSProperties}
+            />
+            <div className="border-2 border-tinta bg-[#f7f5ef] p-1.5 pb-2 shadow-[3px_3px_0_0_rgba(0,0,0,0.3)]">
               <RetratoSuspeito
                 suspeito={suspeito}
                 fotoId={fotoId}
                 className="aspect-square w-full"
               />
+              <figcaption className="mt-1.5 text-center font-maquina text-[0.7rem] leading-tight text-tinta">
+                {suspeito.nome}
+              </figcaption>
             </div>
-            <figcaption className="text-center font-mono text-[0.625rem] leading-tight tracking-[0.1em] text-noite-900/70 uppercase">
-              Retrato de arquivo
-            </figcaption>
           </figure>
         </div>
 
@@ -104,12 +109,15 @@ export default function FichaSuspeito({
         <Interrogatorio caso={caso} suspeito={suspeito} />
 
         {/* Rodapé: situação + carimbo */}
-        <div className="relative mt-1 flex items-end justify-between gap-4 border-t border-noite-900/20 pt-3">
-          <p className="text-[0.6875rem] leading-relaxed text-noite-900/60">
+        <div className="relative mt-1 flex items-end justify-between gap-4 border-t-2 border-dashed border-tinta/25 pt-3">
+          <p className="font-mono text-[0.72rem] leading-relaxed text-tinta/55">
             Documento de trabalho da dupla de analistas. Álibi declarado não é
             álibi verificado.
           </p>
-          <span className="shrink-0 -rotate-6 border-2 border-sangue-600/60 px-2 py-1 font-mono text-[0.625rem] tracking-[0.22em] text-sangue-600/80 uppercase">
+          <span
+            className="carimbo shrink-0 text-[0.8rem]"
+            style={{ "--giro": "-7deg" } as React.CSSProperties}
+          >
             Sob apuração
           </span>
         </div>

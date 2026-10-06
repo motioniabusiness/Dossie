@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { precarregarRetratos } from "./RetratoSuspeito";
 import TelaCarregando from "./TelaCarregando";
 import {
   PISTAS_PRIVADAS_POR_JOGADOR,
@@ -8,22 +9,19 @@ import {
   usePapel,
 } from "@/lib/estado/JogoProvider";
 import { dividirPistasPrivadas } from "@/lib/pistasPrivadas";
+import {
+  consumirAdiantado,
+  descartarAdiantado,
+  mesmaConfig,
+} from "@/lib/proximoCaso";
 import { sortearRetratos } from "@/lib/retratos";
-import type { CasoPublico, ConfigPartida } from "@/lib/tipos";
+import type { CasoPublico } from "@/lib/tipos";
 
 interface RespostaGeracao {
   caso: CasoPublico;
   solucaoSelada: string;
 }
 
-/** Duas configurações produzem casos equivalentes? */
-export function mesmaConfig(a: ConfigPartida, b: ConfigPartida) {
-  return (
-    a.categoria === b.categoria &&
-    a.dificuldade === b.dificuldade &&
-    a.modo === b.modo
-  );
-}
 
 /**
  * Etapa de geração: chama /api/gerar-caso com a categoria, o tempo, a
@@ -49,6 +47,12 @@ export default function GerarCaso() {
 
   const config = estado.config;
   const minutos = config?.minutos ?? 40;
+
+  // Enquanto o caso é escrito, os rostos já vão baixando: o quadro abre
+  // completo, sem quadrados vazios esperando a imagem.
+  useEffect(() => {
+    precarregarRetratos();
+  }, []);
 
   useEffect(() => {
     // À distância, só o aparelho de quem criou a sala gera: o caso chega ao
@@ -87,9 +91,10 @@ export default function GerarCaso() {
       dispatch({ tipo: "IR_PARA", fase: "investigacao" });
     }
 
-    // Caso adiantado durante o veredito anterior, se serve para esta partida.
+    // Caso adiantado durante o resultado anterior, se serve para esta partida.
     const pronto = estado.casoPreparado;
     if (pronto && mesmaConfig(pronto.config, config)) {
+      descartarAdiantado();
       entrarNaSala(
         pronto.caso,
         pronto.solucaoSelada,
@@ -101,6 +106,22 @@ export default function GerarCaso() {
 
     async function gerar() {
       setErro(null);
+
+      // Ainda chegando: espera o mesmo pedido em vez de pagar uma geração nova.
+      const aCaminho = consumirAdiantado(config!);
+      if (aCaminho) {
+        const adiantado = await aCaminho;
+        if (adiantado) {
+          entrarNaSala(
+            adiantado.caso,
+            adiantado.solucaoSelada,
+            adiantado.fotos,
+            adiantado.retratosUsados,
+          );
+          return;
+        }
+      }
+
       try {
         const resposta = await fetch("/api/gerar-caso", {
           method: "POST",
@@ -164,6 +185,9 @@ export default function GerarCaso() {
     <TelaCarregando
       erro={erro}
       onTentarNovamente={() => setTentativa((t) => t + 1)}
+      // Volta zerando o relógio: um caso novo começa com o tempo cheio.
+      onVoltar={() => dispatch({ tipo: "NOVA_PARTIDA" })}
+      rotuloVoltar="Mudar as escolhas"
     />
   );
 }

@@ -85,14 +85,14 @@ export default function MenuInicial() {
        * inteira passava da dobra e a página ganhava rolagem.
        */}
       <div
-        className="relative aspect-[43/24] w-full overflow-hidden palco:rounded-xl palco:border palco:border-noite-700"
+        className="relative aspect-[43/24] w-full overflow-hidden palco:rounded-[4px] palco:border-2 palco:border-tinta palco:shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]"
         style={{ maxWidth: "min(1376px, calc(100dvh * 43 / 24))" }}
       >
         {/* Arte e etiquetas no mesmo bloco animado: assim o leve movimento de
             câmera não desgruda os nomes dos personagens. */}
         <div className="animate-panorama absolute inset-0">
           <Image
-            src="/menu.jpg"
+            src="/menu.webp"
             alt="Escritório de investigação com os dois detetives diante do quadro de evidências"
             width={1376}
             height={768}
@@ -101,7 +101,7 @@ export default function MenuInicial() {
              * Sem passar pelo otimizador: ele recomprimia a arte com qualidade
              * 75 e ainda pedia uma variante de 3840 px, ampliada a partir de
              * 1376. Servindo o arquivo original, o desenho chega exatamente
-             * como saiu do Gemini. São 850 KB carregados uma vez e cacheados.
+             * como saiu do Gemini, em WebP de 224 KB carregado uma vez e cacheado.
              */
             unoptimized
             className="h-full w-full object-cover"
@@ -191,7 +191,7 @@ function Alternador<T extends string>({
     <div
       role="radiogroup"
       aria-label={rotulo}
-      className="grid grid-flow-col gap-1 rounded-sm border border-noite-900/20 bg-noite-900/[0.05] p-1"
+      className="grid grid-flow-col gap-1 border-2 border-tinta/70 bg-papel-50/50 p-1"
     >
       {opcoes.map((o) => (
         <button
@@ -200,10 +200,10 @@ function Alternador<T extends string>({
           role="radio"
           aria-checked={valor === o.id}
           onClick={() => onChange(o.id)}
-          className={`rounded-[2px] px-2 py-1.5 font-mono text-[0.6875rem] tracking-[0.06em] transition-colors ${
+          className={`px-2 py-1.5 font-mono text-[0.72rem] font-bold tracking-[0.04em] transition-colors ${
             valor === o.id
-              ? "bg-noite-900 text-papel-50"
-              : "text-noite-900/60 hover:text-noite-900"
+              ? "bg-tinta text-ambar-300"
+              : "text-tinta/60 hover:text-tinta"
           }`}
         >
           {o.nome}
@@ -232,10 +232,10 @@ function FichaDeDupla({
   return (
     <div className="cascata flex flex-col gap-3.5">
       <div className="flex flex-col gap-1 text-center">
-        <span className="font-mono text-[0.625rem] tracking-[0.22em] text-sangue-600 uppercase">
+        <span className="font-mono text-[0.7rem] font-bold tracking-[0.22em] text-sangue-600 uppercase">
           Novo caso
         </span>
-        <span className="font-mono text-lg leading-tight text-noite-900">
+        <span className="font-maquina text-2xl leading-tight text-tinta">
           Quem investiga hoje?
         </span>
       </div>
@@ -266,7 +266,7 @@ function FichaDeDupla({
         <div className="flex flex-col gap-1">
           <label
             htmlFor="codigo-sala"
-            className="font-mono text-[0.5625rem] tracking-[0.18em] text-noite-900/55 uppercase"
+            className="font-mono text-[0.66rem] font-bold tracking-[0.18em] text-tinta/55 uppercase"
           >
             Código da sala
           </label>
@@ -286,9 +286,9 @@ function FichaDeDupla({
             spellCheck={false}
             inputMode="text"
             placeholder="ABCD"
-            className="w-full rounded-sm border border-noite-900/25 bg-papel-50/70 px-3 py-2 text-center font-mono text-2xl tracking-[0.5em] text-noite-900 uppercase outline-none transition-colors placeholder:text-noite-900/25 focus:border-sangue-600/60 focus:bg-papel-50"
+            className="campo-papel text-center font-maquina text-3xl tracking-[0.45em] uppercase"
           />
-          <p className="text-[0.6875rem] leading-relaxed text-noite-900/55">
+          <p className="font-mono text-[0.72rem] leading-relaxed text-tinta/55">
             Peça o código para quem criou a sala.
           </p>
         </div>
@@ -331,7 +331,7 @@ function FichaDeDupla({
               : "Abrir a sala de investigação"}
       </Botao>
 
-      <p className="text-center text-[0.6875rem] leading-relaxed text-noite-900/60">
+      <p className="text-center font-mono text-[0.72rem] leading-relaxed text-tinta/60">
         {distancia
           ? "Cada um no seu celular, o mesmo caso ao vivo. Fiquem numa ligação para conversar."
           : "Dois analistas, o mesmo caso, uma única verdade. No fim cada um escreve a sua versão, e apenas uma chega mais perto."}
@@ -357,7 +357,7 @@ function CampoNome({
     <div className="flex flex-col gap-1">
       <label
         htmlFor={id}
-        className="font-mono text-[0.5625rem] tracking-[0.18em] text-noite-900/55 uppercase"
+        className="font-mono text-[0.66rem] font-bold tracking-[0.18em] text-tinta/55 uppercase"
       >
         {rotulo}
       </label>
@@ -368,7 +368,7 @@ function CampoNome({
         maxLength={24}
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-sm border border-noite-900/25 bg-papel-50/70 px-3 py-2 font-mono text-sm text-noite-900 outline-none transition-colors placeholder:text-noite-900/35 focus:border-sangue-600/60 focus:bg-papel-50"
+        className="campo-papel text-[0.95rem]"
       />
     </div>
   );

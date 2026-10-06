@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Botao from "./Botao";
+import { IconeCompartilhar } from "./Icones";
 import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
 
 /**
@@ -39,18 +41,18 @@ export default function CartaoSala() {
       <div className="flex items-center gap-4">
         <div className="flex flex-col">
           <span className="etiqueta">Sala à distância</span>
-          <span className="font-mono text-2xl tracking-[0.3em] text-ambar-300">
+          <span className="font-maquina text-3xl leading-none tracking-[0.3em] text-ambar-300">
             {online.codigo}
           </span>
         </div>
         <span
-          className={`flex items-center gap-2 text-xs ${
+          className={`flex items-center gap-2 font-mono text-xs ${
             presente ? "text-papel-100" : "text-papel-500"
           }`}
         >
           <span
-            className={`h-2 w-2 rounded-full ${
-              presente ? "bg-emerald-400" : "animate-pulse bg-ambar-500"
+            className={`h-2.5 w-2.5 border border-tinta ${
+              presente ? "bg-ambar-400" : "animate-pulse bg-sangue-400"
             }`}
           />
           {presente
@@ -63,13 +65,10 @@ export default function CartaoSala() {
       </div>
 
       {anfitriao && !presente && (
-        <button
-          type="button"
-          onClick={convidar}
-          className="rounded-md border border-noite-600 px-3 py-2 text-xs text-papel-100 transition-colors hover:border-ambar-500/60 hover:text-ambar-300"
-        >
+        <Botao variante="secundario" onClick={convidar} className="text-xs">
+          <IconeCompartilhar />
           {copiado ? "Convite copiado" : "Enviar convite"}
-        </button>
+        </Botao>
       )}
     </div>
   );

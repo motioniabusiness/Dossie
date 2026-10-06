@@ -1,11 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   ESFORCO,
-  ErroConfiguracao,
+  erroDaIA,
   MODELO,
   clienteAnthropic,
   extrasDeFallback,
@@ -152,24 +151,7 @@ export async function POST(req: Request) {
       solucaoSelada: selar(casoIA.solucaoSecreta),
     });
   } catch (e) {
-    if (e instanceof ErroConfiguracao) {
-      return erro(e.message, 500);
-    }
-    if (e instanceof Anthropic.RateLimitError) {
-      return erro("Limite de uso da API atingido. Aguarde e tente de novo.", 429);
-    }
-    if (e instanceof Anthropic.AuthenticationError) {
-      return erro("A chave da API foi recusada. Confira o .env.local.", 401);
-    }
-    if (e instanceof Anthropic.APIConnectionError) {
-      return erro("Sem conexão com a API da Anthropic.", 503);
-    }
-    if (e instanceof Anthropic.APIError) {
-      // Sem isto no log, um 400 de parâmetro fica indistinguível de um 400 de conteúdo.
-      console.error(`[gerar-caso] APIError ${e.status}: ${e.message}`);
-      return erro(`Falha na API (${e.status}). Tente de novo.`, 502);
-    }
-    console.error("[gerar-caso] erro inesperado:", e);
-    return erro("Erro inesperado ao gerar o caso.", 500);
+    const { mensagem, status } = erroDaIA(e, "gerar-caso");
+    return erro(mensagem, status);
   }
 }

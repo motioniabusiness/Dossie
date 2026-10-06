@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { IconeAltoFalante } from "./Icones";
 import { useJogo } from "@/lib/estado/JogoProvider";
 import type { FaseJogo } from "@/lib/tipos";
 
@@ -216,7 +217,7 @@ export default function TrilhaSonora() {
   return (
     <div
       style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
-      className="fixed right-4 z-50 flex items-center gap-3 rounded-full border border-noite-600 bg-noite-900/90 px-3 py-2 backdrop-blur-md transition-all"
+      className="fixed right-4 z-50 flex items-center gap-3 rounded-[3px] border-2 border-tinta bg-noite-900/95 px-2.5 py-2 shadow-[3px_3px_0_0_rgba(0,0,0,0.6)] backdrop-blur-md transition-all"
       onMouseEnter={() => setAberto(true)}
       onMouseLeave={() => setAberto(false)}
     >
@@ -224,18 +225,12 @@ export default function TrilhaSonora() {
         type="button"
         onClick={() => setMudo((m) => !m)}
         aria-label={mudo ? "Ligar a trilha" : "Silenciar a trilha"}
-        className="text-papel-300 transition-colors hover:text-ambar-300"
+        title={mudo ? "Ligar a música" : "Silenciar a música"}
+        className={`relative transition-colors hover:text-ambar-300 ${mudo ? "text-papel-500" : "text-ambar-400"}`}
       >
-        {mudo ? (
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <path d="M4 9v6h4l5 4V5L8 9H4z" />
-            <path d="M17 9l4 6M21 9l-4 6" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <path d="M4 9v6h4l5 4V5L8 9H4z" />
-            <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
-          </svg>
+        <IconeAltoFalante className="h-5 w-5" />
+        {mudo && (
+          <span className="absolute top-1/2 left-1/2 h-[2.5px] w-6 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-sangue-400" />
         )}
       </button>
 
@@ -250,7 +245,7 @@ export default function TrilhaSonora() {
           if (mudo) setMudo(false);
         }}
         aria-label="Volume da trilha"
-        className={`h-1 cursor-pointer appearance-none rounded-full bg-noite-600 accent-ambar-500 transition-all duration-300 ${
+        className={`h-1 cursor-pointer appearance-none bg-noite-600 accent-ambar-500 transition-all duration-300 ${
           aberto ? "w-24 opacity-100" : "w-0 opacity-0"
         }`}
       />

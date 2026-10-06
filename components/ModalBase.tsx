@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { IconeFechar } from "./Icones";
+import { somPapel } from "@/lib/efeitos";
 
 interface Props {
   /** Linha superior pequena: tipo do arquivo, numeração, etc. */
@@ -27,6 +29,11 @@ export default function ModalBase({
   children,
 }: Props) {
   const botaoFechar = useRef<HTMLButtonElement>(null);
+
+  // Só na abertura: o efeito de baixo reroda se o `onFechar` mudar.
+  useEffect(() => {
+    somPapel();
+  }, []);
 
   useEffect(() => {
     botaoFechar.current?.focus();
@@ -58,7 +65,7 @@ export default function ModalBase({
    */
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-noite-950/85 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-noite-950/80 backdrop-blur-[3px] sm:items-center sm:p-6"
       onClick={onFechar}
     >
       <div
@@ -66,36 +73,36 @@ export default function ModalBase({
         aria-modal="true"
         aria-labelledby="titulo-modal"
         onClick={(e) => e.stopPropagation()}
-        className={`animate-entrada flex max-h-[92dvh] w-full flex-col overflow-hidden ${larguraMax} rounded-t-xl sm:max-h-[calc(100dvh-3rem)] sm:rounded-lg ${
+        className={`animate-entrada flex max-h-[92dvh] w-full flex-col overflow-hidden ${larguraMax} rounded-t-[10px] border-2 sm:max-h-[calc(100dvh-3rem)] sm:rounded-[3px] ${
           papel
-            ? "papelzinho border border-madeira-700/40"
-            : "painel rounded-b-none sm:rounded-b-lg"
+            ? "papelzinho border-tinta sm:shadow-[7px_7px_0_0_rgba(0,0,0,0.55)]"
+            : "painel border-[#2b3441] sm:shadow-[7px_7px_0_0_rgba(0,0,0,0.55)]"
         }`}
       >
         {/* Alça da folha, só no celular */}
         <span
           aria-hidden="true"
           className={`mx-auto mt-2 h-1 w-10 shrink-0 rounded-full sm:hidden ${
-            papel ? "bg-noite-900/25" : "bg-noite-600"
+            papel ? "bg-tinta/25" : "bg-noite-600"
           }`}
         />
         <header
-          className={`flex shrink-0 items-start justify-between gap-4 border-b px-5 py-3 sm:px-6 sm:py-4 ${
-            papel ? "border-noite-900/20" : "border-noite-700"
+          className={`flex shrink-0 items-start justify-between gap-4 border-b-2 px-5 py-3 sm:px-6 sm:py-4 ${
+            papel ? "border-dashed border-tinta/25" : "border-noite-700"
           }`}
         >
           <div className="flex min-w-0 flex-col gap-1.5">
             <span
               className={`etiqueta flex items-center gap-2 ${
-                papel ? "text-noite-600" : ""
+                papel ? "text-tinta/55" : ""
               }`}
             >
               {etiqueta}
             </span>
             <h3
               id="titulo-modal"
-              className={`font-mono text-lg leading-snug ${
-                papel ? "text-noite-900" : "text-papel-50"
+              className={`font-maquina text-xl leading-tight sm:text-2xl ${
+                papel ? "text-tinta" : "text-papel-50"
               }`}
             >
               {titulo}
@@ -106,13 +113,13 @@ export default function ModalBase({
             ref={botaoFechar}
             onClick={onFechar}
             aria-label="Fechar arquivo"
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ambar-500/60 ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] border-2 transition-[transform,box-shadow,color] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
               papel
-                ? "border-noite-900/25 text-noite-700 hover:border-sangue-500 hover:text-sangue-600"
-                : "border-noite-600 text-papel-300 hover:border-ambar-500/60 hover:text-ambar-300"
+                ? "border-tinta bg-papel-50 text-tinta shadow-[3px_3px_0_0_var(--color-tinta)] hover:text-sangue-500"
+                : "border-tinta bg-noite-800 text-papel-100 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] hover:text-ambar-300"
             }`}
           >
-            ✕
+            <IconeFechar />
           </button>
         </header>
 

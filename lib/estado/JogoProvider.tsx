@@ -240,7 +240,9 @@ function redutor(estado: EstadoJogo, acao: AcaoJogo): EstadoJogo {
       return {
         ...estado,
         fase: "configuracao",
-        config: null,
+        // A configuração anterior fica: a tela já abre com as mesmas escolhas,
+        // e o caso adiantado (gerado com elas) entra na hora.
+        config: estado.config,
         caso: null,
         solucaoSelada: null,
         fimEm: null,
