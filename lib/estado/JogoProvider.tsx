@@ -2,8 +2,10 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useReducer,
   useRef,
   type Dispatch,
@@ -77,6 +79,8 @@ export interface EstadoJogo {
    */
   retratosUsados: string[];
   teorias: { jogador1: string; jogador2: string };
+  /** Modo à distância: o segundo detetive já entrou na sala. */
+  convidadoPresente: boolean;
   julgamento: Julgamento | null;
   /** Solução aberta pelo servidor — só existe a partir da tela de resultado. */
   solucao: SolucaoSecreta | null;
@@ -103,12 +107,15 @@ const estadoInicial: EstadoJogo = {
   interrogatorios: [],
   casoPreparado: null,
   teorias: { jogador1: "", jogador2: "" },
+  convidadoPresente: false,
   julgamento: null,
   solucao: null,
 };
 
 export type AcaoJogo =
   | { tipo: "HIDRATAR"; estado: EstadoJogo }
+  /** Modo à distância: o convidado chegou pelo código da sala. */
+  | { tipo: "CONVIDADO_ENTROU" }
   | { tipo: "DEFINIR_JOGADORES"; jogador1: string; jogador2: string }
   | { tipo: "DEFINIR_CONFIG"; config: ConfigPartida }
   | {
@@ -150,6 +157,9 @@ function redutor(estado: EstadoJogo, acao: AcaoJogo): EstadoJogo {
   switch (acao.tipo) {
     case "HIDRATAR":
       return acao.estado;
+
+    case "CONVIDADO_ENTROU":
+      return { ...estado, convidadoPresente: true };
 
     case "DEFINIR_JOGADORES":
       return {
@@ -251,26 +261,206 @@ function redutor(estado: EstadoJogo, acao: AcaoJogo): EstadoJogo {
   }
 }
 
+/** Modo à distância: em que sala este aparelho está e qual detetive ele é. */
+export interface SessaoOnline {
+  codigo: string;
+  eu: 1 | 2;
+}
+
+/** Saúde da ligação com a sala, para avisar quando a internet oscila. */
+export type Conexao = "ok" | "instavel" | "expirada";
+
 interface ContextoJogo {
   estado: EstadoJogo;
+  /**
+   * No modo local aplica a ação na hora. No modo à distância publica na sala
+   * e a ação só entra no estado quando volta de lá, na mesma ordem para os
+   * dois aparelhos.
+   */
   dispatch: Dispatch<AcaoJogo>;
+  online: SessaoOnline | null;
+  conexao: Conexao;
+  criarSala: (jogador1: string, jogador2: string) => Promise<void>;
+  entrarNaSala: (codigo: string) => Promise<void>;
+  /** Sai só deste aparelho; a sala continua de pé para o outro. */
+  sairDaSala: () => void;
 }
 
 const Contexto = createContext<ContextoJogo | null>(null);
 
 const CHAVE_SESSAO = "dossie:partida";
+const CHAVE_ONLINE = "dossie:online";
+/** De quanto em quanto tempo cada aparelho pergunta à sala se há novidade. */
+const INTERVALO_CONSULTA_MS = 1000;
+
+/** Erro com a mensagem pronta para mostrar na tela. */
+async function mensagemDeErro(resposta: Response, padrao: string) {
+  const corpo: unknown = await resposta.json().catch(() => null);
+  return corpo &&
+    typeof corpo === "object" &&
+    "erro" in corpo &&
+    typeof corpo.erro === "string"
+    ? corpo.erro
+    : padrao;
+}
 
 export function ProvedorJogo({ children }: { children: ReactNode }) {
-  const [estado, dispatch] = useReducer(redutor, estadoInicial);
+  const [estado, aplicar] = useReducer(redutor, estadoInicial);
+  const [online, definirOnline] = useReducer(
+    (_: SessaoOnline | null, nova: SessaoOnline | null) => nova,
+    null,
+  );
+  const [conexao, definirConexao] = useReducer(
+    (_: Conexao, nova: Conexao) => nova,
+    "ok",
+  );
   // A primeira renderização precisa ser igual à do servidor (menu inicial); só
   // depois de montar lemos o sessionStorage e restauramos a partida em curso.
   const primeiroCiclo = useRef(true);
 
+  /**
+   * Espelhos para as funções assíncronas: o `online` do render pode estar um
+   * passo atrás de quem acabou de criar ou entrar numa sala.
+   */
+  const sessao = useRef<SessaoOnline | null>(null);
+  /** Quantas ações da sala este aparelho já aplicou. */
+  const aplicadas = useRef(0);
+  /** Envios em fila: ações disparadas em sequência chegam à sala na ordem. */
+  const fila = useRef<Promise<void>>(Promise.resolve());
+
+  /** Aplica um trecho da lista da sala que começa na posição `desde`. */
+  const aplicarDaSala = useCallback((desde: number, acoes: AcaoJogo[]) => {
+    const jaVistas = aplicadas.current - desde;
+    // Buraco na sequência não acontece na prática; se acontecer, a próxima
+    // consulta pede a partir do ponto certo e preenche.
+    if (jaVistas < 0) return;
+    const novas = acoes.slice(jaVistas);
+    for (const acao of novas) aplicar(acao);
+    aplicadas.current += novas.length;
+  }, []);
+
+  const entrarEmModoOnline = useCallback((nova: SessaoOnline) => {
+    sessao.current = nova;
+    aplicadas.current = 0;
+    aplicar({ tipo: "HIDRATAR", estado: estadoInicial });
+    definirOnline(nova);
+    definirConexao("ok");
+    try {
+      sessionStorage.setItem(CHAVE_ONLINE, JSON.stringify(nova));
+    } catch {
+      // Sem storage: a sala funciona até a aba ser recarregada.
+    }
+  }, []);
+
+  const publicar = useCallback(
+    (acao: AcaoJogo) => {
+      fila.current = fila.current.then(async () => {
+        const atual = sessao.current;
+        if (!atual) return;
+        // Três tentativas: no celular a rede some por um instante e volta.
+        for (let tentativa = 0; tentativa < 3; tentativa++) {
+          try {
+            const resposta = await fetch(`/api/sala/${atual.codigo}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ acao, desde: aplicadas.current }),
+            });
+            if (resposta.status === 404) {
+              definirConexao("expirada");
+              return;
+            }
+            if (resposta.ok) {
+              const corpo = (await resposta.json()) as {
+                desde: number;
+                acoes: AcaoJogo[];
+              };
+              if (sessao.current === atual) {
+                aplicarDaSala(corpo.desde, corpo.acoes);
+              }
+              definirConexao("ok");
+              return;
+            }
+          } catch {
+            // Tenta de novo logo abaixo.
+          }
+          definirConexao("instavel");
+          await new Promise((r) => setTimeout(r, 800 * (tentativa + 1)));
+        }
+      });
+    },
+    [aplicarDaSala],
+  );
+
+  const dispatch = useCallback<Dispatch<AcaoJogo>>(
+    (acao) => {
+      if (sessao.current && acao.tipo !== "HIDRATAR") publicar(acao);
+      else aplicar(acao);
+    },
+    [publicar],
+  );
+
+  const criarSala = useCallback(
+    async (jogador1: string, jogador2: string) => {
+      const resposta = await fetch("/api/sala", { method: "POST" });
+      if (!resposta.ok) {
+        throw new Error(
+          await mensagemDeErro(resposta, "Não foi possível criar a sala."),
+        );
+      }
+      const { codigo } = (await resposta.json()) as { codigo: string };
+      entrarEmModoOnline({ codigo, eu: 1 });
+      publicar({ tipo: "DEFINIR_JOGADORES", jogador1, jogador2 });
+    },
+    [entrarEmModoOnline, publicar],
+  );
+
+  const entrarNaSala = useCallback(
+    async (codigoDigitado: string) => {
+      const codigo = codigoDigitado.trim().toUpperCase();
+      const resposta = await fetch(`/api/sala/${codigo}?desde=0`, {
+        cache: "no-store",
+      });
+      if (!resposta.ok) {
+        throw new Error(
+          await mensagemDeErro(resposta, "Não foi possível entrar na sala."),
+        );
+      }
+      const corpo = (await resposta.json()) as {
+        desde: number;
+        acoes: AcaoJogo[];
+      };
+      entrarEmModoOnline({ codigo, eu: 2 });
+      aplicarDaSala(corpo.desde, corpo.acoes);
+      publicar({ tipo: "CONVIDADO_ENTROU" });
+    },
+    [entrarEmModoOnline, aplicarDaSala, publicar],
+  );
+
+  const sairDaSala = useCallback(() => {
+    sessao.current = null;
+    aplicadas.current = 0;
+    definirOnline(null);
+    definirConexao("ok");
+    try {
+      sessionStorage.removeItem(CHAVE_ONLINE);
+    } catch {
+      // Nada a limpar.
+    }
+    aplicar({ tipo: "REINICIAR" });
+  }, []);
+
   useEffect(() => {
     try {
+      // Aba recarregada no meio de uma partida à distância: volta para a mesma
+      // sala e reaplica a lista inteira, em vez de confiar no estado guardado.
+      const salaSalva = sessionStorage.getItem(CHAVE_ONLINE);
+      if (salaSalva) {
+        entrarEmModoOnline(JSON.parse(salaSalva) as SessaoOnline);
+        return;
+      }
       const salvo = sessionStorage.getItem(CHAVE_SESSAO);
       if (salvo) {
-        dispatch({
+        aplicar({
           tipo: "HIDRATAR",
           estado: { ...estadoInicial, ...(JSON.parse(salvo) as EstadoJogo) },
         });
@@ -278,7 +468,58 @@ export function ProvedorJogo({ children }: { children: ReactNode }) {
     } catch {
       // Sessão corrompida ou storage bloqueado: começa do zero, sem drama.
     }
-  }, []);
+  }, [entrarEmModoOnline]);
+
+  // Consulta a sala enquanto este aparelho estiver nela.
+  useEffect(() => {
+    if (!online) return;
+    let ativo = true;
+    let emVoo = false;
+
+    async function consultar() {
+      // Aba escondida não consulta: economiza bateria e o limite do Redis.
+      if (emVoo || document.hidden) return;
+      emVoo = true;
+      try {
+        const resposta = await fetch(
+          `/api/sala/${online!.codigo}?desde=${aplicadas.current}`,
+          { cache: "no-store" },
+        );
+        if (!ativo) return;
+        if (resposta.status === 404) {
+          definirConexao("expirada");
+        } else if (resposta.ok) {
+          const corpo = (await resposta.json()) as {
+            desde: number;
+            acoes: AcaoJogo[];
+          };
+          if (ativo && sessao.current?.codigo === online!.codigo) {
+            aplicarDaSala(corpo.desde, corpo.acoes);
+          }
+          definirConexao("ok");
+        } else {
+          definirConexao("instavel");
+        }
+      } catch {
+        if (ativo) definirConexao("instavel");
+      } finally {
+        emVoo = false;
+      }
+    }
+
+    void consultar();
+    const id = setInterval(consultar, INTERVALO_CONSULTA_MS);
+    // Voltou para o app: busca na hora, sem esperar o próximo ciclo.
+    const aoVoltar = () => {
+      if (!document.hidden) void consultar();
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      ativo = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
+  }, [online, aplicarDaSala]);
 
   useEffect(() => {
     // Pula a montagem: nesse instante `estado` ainda é o inicial e gravá-lo
@@ -294,11 +535,20 @@ export function ProvedorJogo({ children }: { children: ReactNode }) {
     }
   }, [estado]);
 
-  return (
-    <Contexto.Provider value={{ estado, dispatch }}>
-      {children}
-    </Contexto.Provider>
+  const valor = useMemo(
+    () => ({
+      estado,
+      dispatch,
+      online,
+      conexao,
+      criarSala,
+      entrarNaSala,
+      sairDaSala,
+    }),
+    [estado, dispatch, online, conexao, criarSala, entrarNaSala, sairDaSala],
   );
+
+  return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 
 export function useJogo(): ContextoJogo {
@@ -307,4 +557,25 @@ export function useJogo(): ContextoJogo {
     throw new Error("useJogo precisa estar dentro de <ProvedorJogo>.");
   }
   return ctx;
+}
+
+/**
+ * Qual papel este aparelho tem na partida.
+ *
+ * `anfitriao` é quem dispara o que custa dinheiro (gerar caso, julgar,
+ * adiantar o próximo caso): no modo à distância só o aparelho de quem criou a
+ * sala faz isso, para nada sair em dobro. No modo local o único aparelho é o
+ * anfitrião.
+ */
+export function usePapel() {
+  const { online, estado } = useJogo();
+  const eu = online?.eu ?? null;
+  return {
+    online: online !== null,
+    eu,
+    anfitriao: eu === null || eu === 1,
+    /** Nome deste aparelho e do outro, no modo à distância. */
+    meuNome: eu === 2 ? estado.jogador2 : estado.jogador1,
+    nomeDoOutro: eu === 2 ? estado.jogador1 : estado.jogador2,
+  };
 }

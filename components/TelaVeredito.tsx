@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Botao from "./Botao";
 import PrepararProximoCaso from "./PrepararProximoCaso";
 import RetratoJogador from "./RetratoJogador";
-import { useJogo } from "@/lib/estado/JogoProvider";
+import TelaEspera from "./TelaEspera";
+import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
 
 /** Mínimo para uma teoria valer avaliação, evita "foi o mordomo" e ponto. */
 const MINIMO_CARACTERES = 120;
@@ -18,19 +19,52 @@ type Etapa = "passa1" | "escreve1" | "passa2" | "escreve2";
  */
 export default function TelaVeredito() {
   const { estado, dispatch } = useJogo();
+  const papel = usePapel();
   const cooperativo = estado.config?.modo === "cooperativo";
-  const [etapa, setEtapa] = useState<Etapa>(
-    cooperativo ? "escreve1" : "passa1",
+  const [etapa, setEtapa] = useState<Etapa>(() =>
+    // À distância não há troca de mãos: cada aparelho já é de uma pessoa.
+    papel.online && !cooperativo
+      ? papel.eu === 2
+        ? "escreve2"
+        : "escreve1"
+      : cooperativo
+        ? "escreve1"
+        : "passa1",
   );
   const [texto, setTexto] = useState("");
+  /** À distância: a versão deste aparelho já saiu, mesmo antes de voltar da sala. */
+  const [enviada, setEnviada] = useState(false);
+  const avancou = useRef(false);
 
   const escrevendo = etapa === "escreve1" ? 1 : 2;
   const nome = escrevendo === 1 ? estado.jogador1 : estado.jogador2;
   const suficiente = texto.trim().length >= MINIMO_CARACTERES;
 
+  const { jogador1: teoria1, jogador2: teoria2 } = estado.teorias;
+  const duasSeladas = teoria1.length > 0 && teoria2.length > 0;
+
+  // À distância, quando as duas versões estão na sala, quem criou a sala leva
+  // a partida para o júri. Uma vez só, mesmo que o efeito rode de novo.
+  useEffect(() => {
+    if (!papel.online || cooperativo || !papel.anfitriao) return;
+    if (!duasSeladas || avancou.current) return;
+    avancou.current = true;
+    dispatch({ tipo: "IR_PARA", fase: "resultado" });
+  }, [papel.online, papel.anfitriao, cooperativo, duasSeladas, dispatch]);
+
   function selar() {
     if (!suficiente) return;
     const limpo = texto.trim();
+
+    if (papel.online && !cooperativo) {
+      dispatch({
+        tipo: "DEFINIR_TEORIA",
+        jogador: papel.eu === 2 ? "jogador2" : "jogador1",
+        texto: limpo,
+      });
+      setEnviada(true);
+      return;
+    }
 
     if (cooperativo) {
       // A mesma teoria vai nos dois campos: o julgamento cooperativo lê a
@@ -51,6 +85,43 @@ export default function TelaVeredito() {
       setEtapa("passa2");
     } else {
       dispatch({ tipo: "IR_PARA", fase: "resultado" });
+    }
+  }
+
+  // ---------- À distância: esperas ----------
+  if (papel.online) {
+    const minhaJaFoi =
+      enviada || (papel.eu === 2 ? teoria2 : teoria1).length > 0;
+
+    if (cooperativo && !papel.anfitriao) {
+      return (
+        <TelaEspera
+          vezDe={1}
+          titulo={`${estado.jogador1} está escrevendo a teoria da dupla`}
+          texto="No cooperativo a versão é uma só e sai do aparelho de quem criou a sala. Vão ditando pela ligação: quem fez, como fez, por que fez e quais pistas provam."
+        />
+      );
+    }
+
+    if (!cooperativo && minhaJaFoi) {
+      return (
+        <>
+          <PrepararProximoCaso />
+          <TelaEspera
+            vezDe={papel.eu === 2 ? 1 : 2}
+            titulo={
+              duasSeladas
+                ? "As duas versões estão seladas"
+                : `Sua versão está selada. Falta ${papel.nomeDoOutro}`
+            }
+            texto={
+              duasSeladas
+                ? "Entregando ao júri."
+                : "Ninguém lê a versão do outro antes do resultado. Assim que a outra chegar, o júri começa a ler."
+            }
+          />
+        </>
+      );
     }
   }
 

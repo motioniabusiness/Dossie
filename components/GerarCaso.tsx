@@ -5,6 +5,7 @@ import TelaCarregando from "./TelaCarregando";
 import {
   PISTAS_PRIVADAS_POR_JOGADOR,
   useJogo,
+  usePapel,
 } from "@/lib/estado/JogoProvider";
 import { dividirPistasPrivadas } from "@/lib/pistasPrivadas";
 import { sortearRetratos } from "@/lib/retratos";
@@ -34,6 +35,7 @@ export function mesmaConfig(a: ConfigPartida, b: ConfigPartida) {
  */
 export default function GerarCaso() {
   const { estado, dispatch } = useJogo();
+  const { anfitriao } = usePapel();
   const [erro, setErro] = useState<string | null>(null);
   /** Incrementar reexecuta o efeito, é o botão "tentar de novo". */
   const [tentativa, setTentativa] = useState(0);
@@ -49,6 +51,9 @@ export default function GerarCaso() {
   const minutos = config?.minutos ?? 40;
 
   useEffect(() => {
+    // À distância, só o aparelho de quem criou a sala gera: o caso chega ao
+    // outro pela sala, e a geração não é paga duas vezes.
+    if (!anfitriao) return;
     if (!config || enviada.current === tentativa) return;
     enviada.current = tentativa;
 
@@ -146,6 +151,14 @@ export default function GerarCaso() {
     // dependências são lidas no momento da chamada, sem reexecutar o efeito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tentativa]);
+
+  if (!anfitriao) {
+    return (
+      <TelaCarregando
+        nota={`O caso está sendo aberto no aparelho de ${estado.jogador1}. Ele chega aqui sozinho, em cerca de um minuto.`}
+      />
+    );
+  }
 
   return (
     <TelaCarregando

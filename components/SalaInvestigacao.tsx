@@ -12,7 +12,7 @@ import ModalPistaPrivada from "./ModalPistaPrivada";
 import QuadroInvestigacao from "./QuadroInvestigacao";
 import RetratoSuspeito from "./RetratoSuspeito";
 import { nomeCategoria, nomeDificuldade } from "@/lib/categorias";
-import { useJogo } from "@/lib/estado/JogoProvider";
+import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
 import { donoDaPista } from "@/lib/pistasPrivadas";
 import type { CasoPublico } from "@/lib/tipos";
 
@@ -37,7 +37,8 @@ interface Props {
 }
 
 export default function SalaInvestigacao({ caso, fimEm }: Props) {
-  const { estado, dispatch } = useJogo();
+  const { estado, dispatch, online } = useJogo();
+  const papel = usePapel();
   const [aberto, setAberto] = useState<Aberto>(null);
   const [confirmandoVeredito, setConfirmandoVeredito] = useState(false);
   /** No celular o polegar esbarra fácil: pular também pede confirmação. */
@@ -63,7 +64,11 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
    */
   function abrirPista(id: string) {
     const dono = donoDaPista(id, estado.pistasPrivadas);
-    if (dono) setAberto({ tipo: "lacrado", id, dono });
+    // À distância cada aparelho é de uma pessoa: o dono abre direto, sem o
+    // portão de "olhe para o lado", e o outro encontra o arquivo lacrado.
+    const meu = papel.eu === 1 ? "jogador1" : "jogador2";
+    if (dono && papel.online && dono === meu) revelarPista(id);
+    else if (dono) setAberto({ tipo: "lacrado", id, dono });
     else revelarPista(id);
   }
 
@@ -105,6 +110,9 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
               {estado.config
                 ? ` · ${nomeDificuldade(estado.config.dificuldade)}`
                 : ""}
+              {online && (
+                <span className="text-ambar-400"> · sala {online.codigo}</span>
+              )}
               <span className="hidden sm:inline">
                 {" "}
                 · {estado.jogador1} vs {estado.jogador2}
@@ -241,7 +249,11 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
                       </span>
                       <span className="mt-1 line-clamp-2 block text-xs leading-snug text-papel-300">
                         {donos[p.id]
-                          ? `Arquivo lacrado, só ${donos[p.id]} pode abrir.`
+                          ? papel.online &&
+                            donoDaPista(p.id, estado.pistasPrivadas) ===
+                              (papel.eu === 1 ? "jogador1" : "jogador2")
+                            ? "Arquivo secreto seu. Só você vê o que tem aqui."
+                            : `Arquivo lacrado, só ${donos[p.id]} pode abrir.`
                           : p.tipo === "foto" && p.legendaFoto
                             ? p.legendaFoto
                             : p.conteudo}
@@ -380,6 +392,7 @@ export default function SalaInvestigacao({ caso, fimEm }: Props) {
             aberto.dono === "jogador1" ? estado.jogador2 : estado.jogador1
           }
           numero={numeroArquivo(indiceLacrada, caso.pistas.length)}
+          bloqueado={papel.online}
           onConfirmar={() => revelarPista(aberto.id)}
           onFechar={fecharModal}
         />

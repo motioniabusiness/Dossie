@@ -133,7 +133,7 @@ interface Props {
 }
 
 export default function TelaResultado({ caso, julgamento, solucao }: Props) {
-  const { estado, dispatch } = useJogo();
+  const { estado, dispatch, online, sairDaSala } = useJogo();
 
   const anuncio =
     julgamento.modo === "cooperativo"
@@ -229,9 +229,13 @@ export default function TelaResultado({ caso, julgamento, solucao }: Props) {
       <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-noite-700 pt-5">
         <Botao
           variante="fantasma"
-          onClick={() => dispatch({ tipo: "REINICIAR" })}
+          // À distância, sair é só deste aparelho: mandar REINICIAR para a
+          // sala jogaria o outro detetive de volta ao menu sem aviso.
+          onClick={() =>
+            online ? sairDaSala() : dispatch({ tipo: "REINICIAR" })
+          }
         >
-          Encerrar a sessão
+          {online ? "Sair da sala" : "Encerrar a sessão"}
         </Botao>
         <Botao onClick={() => dispatch({ tipo: "NOVA_PARTIDA" })}>
           Novo caso

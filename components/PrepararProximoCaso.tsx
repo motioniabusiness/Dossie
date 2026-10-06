@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useJogo } from "@/lib/estado/JogoProvider";
+import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
 import { sortearRetratos } from "@/lib/retratos";
 import type { CasoPublico } from "@/lib/tipos";
 
@@ -19,10 +19,12 @@ import type { CasoPublico } from "@/lib/tipos";
  */
 export default function PrepararProximoCaso() {
   const { estado, dispatch } = useJogo();
+  const { anfitriao } = usePapel();
   const disparado = useRef(false);
 
   useEffect(() => {
-    if (disparado.current) return;
+    // À distância, só o aparelho de quem criou a sala adianta o caso.
+    if (!anfitriao || disparado.current) return;
     const config = estado.config;
     if (!config || estado.casoPreparado) return;
     disparado.current = true;

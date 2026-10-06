@@ -10,7 +10,9 @@ import {
   MIN_MINUTOS,
   TEMPOS_PADRAO,
 } from "@/lib/categorias";
-import { useJogo } from "@/lib/estado/JogoProvider";
+import CartaoSala from "./CartaoSala";
+import TelaEspera from "./TelaEspera";
+import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
 import type { Categoria, Dificuldade, ModoJogo } from "@/lib/tipos";
 
 const MODOS: { id: ModoJogo; nome: string; descricao: string }[] = [
@@ -29,7 +31,8 @@ const MODOS: { id: ModoJogo; nome: string; descricao: string }[] = [
 ];
 
 export default function ConfiguracaoPartida() {
-  const { estado, dispatch } = useJogo();
+  const { estado, dispatch, sairDaSala } = useJogo();
+  const papel = usePapel();
 
   const [categoria, setCategoria] = useState<Categoria | null>(
     estado.config?.categoria ?? null,
@@ -57,7 +60,10 @@ export default function ConfiguracaoPartida() {
       : null
     : minutos;
 
-  const pronto = categoria !== null && minutosFinais !== null;
+  /** À distância, só começa com os dois na sala. */
+  const faltaConvidado = papel.online && !estado.convidadoPresente;
+  const pronto =
+    categoria !== null && minutosFinais !== null && !faltaConvidado;
 
   function iniciar() {
     if (!categoria || minutosFinais === null) return;
@@ -65,8 +71,19 @@ export default function ConfiguracaoPartida() {
       tipo: "DEFINIR_CONFIG",
       config: { categoria, minutos: minutosFinais, dificuldade, modo },
     });
-    // A Fase 3 troca isto pela chamada real a /api/gerar-caso.
     dispatch({ tipo: "IR_PARA", fase: "carregando" });
+  }
+
+  // Quem entrou pelo código espera: o caso é escolhido no aparelho de quem
+  // criou a sala, e os dois conversam pela ligação enquanto isso.
+  if (papel.online && !papel.anfitriao) {
+    return (
+      <TelaEspera
+        vezDe={1}
+        titulo={`${estado.jogador1} está escolhendo o caso`}
+        texto="Categoria, dificuldade e tempo são definidos no aparelho de quem criou a sala. Assim que a investigação começar, o quadro abre aqui sozinho."
+      />
+    );
   }
 
   return (
@@ -82,6 +99,8 @@ export default function ConfiguracaoPartida() {
           <span className="text-ambar-400">{estado.jogador2}</span>
         </p>
       </header>
+
+      <CartaoSala />
 
       {/* ---------- Categoria ---------- */}
       <section className="flex flex-col gap-3">
@@ -303,18 +322,27 @@ export default function ConfiguracaoPartida() {
       >
         <Botao
           variante="fantasma"
-          onClick={() => dispatch({ tipo: "IR_PARA", fase: "menu" })}
+          onClick={() =>
+            papel.online
+              ? sairDaSala()
+              : dispatch({ tipo: "IR_PARA", fase: "menu" })
+          }
           className="shrink-0 px-2 sm:px-5"
         >
-          ← <span className="hidden sm:inline">Trocar investigadores</span>
-          <span className="sm:hidden">Voltar</span>
+          ←{" "}
+          <span className="hidden sm:inline">
+            {papel.online ? "Sair da sala" : "Trocar investigadores"}
+          </span>
+          <span className="sm:hidden">{papel.online ? "Sair" : "Voltar"}</span>
         </Botao>
         <Botao
           onClick={iniciar}
           disabled={!pronto}
           className={`flex-1 sm:flex-none ${pronto ? "animate-brilho" : ""}`}
         >
-          Iniciar Investigação
+          {faltaConvidado
+            ? `Aguardando ${estado.jogador2.split(" ").pop()}`
+            : "Iniciar Investigação"}
         </Botao>
       </footer>
     </div>

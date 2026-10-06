@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import TelaCarregando from "./TelaCarregando";
-import { useJogo } from "@/lib/estado/JogoProvider";
+import { useJogo, usePapel } from "@/lib/estado/JogoProvider";
 import type { Julgamento as TipoJulgamento, SolucaoSecreta } from "@/lib/tipos";
 
 interface RespostaJulgamento {
@@ -16,12 +16,16 @@ interface RespostaJulgamento {
  */
 export default function Julgamento() {
   const { estado, dispatch } = useJogo();
+  const { anfitriao } = usePapel();
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
   /** Mesma trava do GerarCaso: o StrictMode não pode julgar duas vezes. */
   const enviada = useRef(-1);
 
   useEffect(() => {
+    // À distância, só quem criou a sala chama o júri; o veredito chega ao
+    // outro aparelho pela sala.
+    if (!anfitriao) return;
     if (enviada.current === tentativa) return;
     enviada.current = tentativa;
 
@@ -78,7 +82,7 @@ export default function Julgamento() {
     <TelaCarregando
       mensagem="O júri está lendo"
       nota="Comparando as duas versões com a solução do caso, sob o mesmo critério."
-      erro={erro}
+      erro={anfitriao ? erro : null}
       onTentarNovamente={() => setTentativa((t) => t + 1)}
     />
   );
